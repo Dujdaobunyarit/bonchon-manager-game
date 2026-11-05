@@ -4,13 +4,18 @@ import http from 'http'; import fs from 'fs'; import path from 'path';
 const R = decodeURIComponent(new URL('..', import.meta.url).pathname), read = f => fs.readFileSync(R + f, 'utf8');
 const db = new PGlite();
 await db.exec(`create role anon nologin; create role authenticated nologin;`);
-await db.exec(read('supabase/schema.sql')); await db.exec(read('private/seed.sql')); await db.exec('set role anon');
-const ARGS = { mm_login: ['p_id', 'p_password'], mm_view: ['p_token'], mm_assessment: ['p_token'], mm_act: ['p_token', 'p_body'], mm_admin: ['p_token', 'p_body'], mm_export: ['p_token'] };
+await db.exec(read('supabase/schema.sql')); await db.exec(read('private/seed.sql')); await db.exec(read('supabase/update_2.sql')); await db.exec('set role anon');
+{ const q = (f, ...x) => db.query(`select public.${f}(${x.map((_, i) => `$${i + 1}`).join(',')}) v`, x).then(r => r.rows[0].v), js = f => JSON.parse(read(f)), pw = js('private/passwords.json');
+  const A = (await q('mm_login', pw.adminUser, pw.admin)).token; await q('mm_set_groups', A, js('data/groups-seed.json'));
+  const mg = js('data/managers.json'), row = u => ({ id: u.id, name: u.name, store: u.store, code: u.store.split('-')[0].trim(), managerId: mg[u.id] || '' }), R0 = js('data/roster.json');
+  for (const g of ['equity', 'franchise']) await q('mm_import', A, g, R0.filter(u => u.group === g).map(row), false); }
+const ARGS = { mm_login: ['p_id', 'p_password'], mm_view: ['p_token'], mm_assessment: ['p_token'], mm_act: ['p_token', 'p_body'], mm_admin: ['p_token', 'p_body'], mm_export: ['p_token'], mm_monitor: ['p_token'], mm_is_admin: ['p_token'], mm_set_groups: ['p_token', 'p_groups'], mm_import: ['p_token', 'p_grp', 'p_rows', 'p_dry'] };
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg' };
 http.createServer((req, res) => {
   const p = new URL(req.url, 'http://x').pathname;
   const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' };
   if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
+  if (p === '/rest/v1/mm_tick') { db.query('select rev from public.mm_tick').then(r => { res.writeHead(200, { ...cors, 'Content-Type': 'application/vnd.pgrst.object+json' }); res.end(JSON.stringify(r.rows[0])); }); return; }
   const m = /^\/rest\/v1\/rpc\/(\w+)$/.exec(p);
   if (m) { let b = ''; req.on('data', d => b += d); req.on('end', async () => { try {
     const body = JSON.parse(b || '{}'), a = ARGS[m[1]].map(k => body[k]);

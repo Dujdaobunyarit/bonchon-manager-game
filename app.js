@@ -47,7 +47,7 @@ function showLogin(msg){
     }catch{$('#er').textContent='เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองอีกครั้ง';go.disabled=false}
   };
 }
-function logout(){store.del('tok');token=null;if(channel)sb.removeChannel(channel);channel=null;V=null;lastKey='';showLogin();}
+function logout(){store.del('tok');token=null;if(channel)sb.removeChannel(channel);channel=null;liveFor=null;lastRev=null;V=null;lastKey='';boBuilt=false;showLogin();}
 
 /* ---------- live updates: a change signal from Supabase, then each device fetches its own view ---------- */
 async function refresh(){
@@ -59,7 +59,7 @@ async function refresh(){
     const t0=Date.now(),sent=token,m=await rpc('mm_view',{p_token:sent});
     if(sent===token){
       if(m.error==='login')expired=true;
-      else{clockOff=m.now+(Date.now()-t0)/2-Date.now();V=m;render()}
+      else{clockOff=m.now+(Date.now()-t0)/2-Date.now();V=m;setupLive();render()}
     }
   }catch(e){expired=!!(e&&(e.code==='22P02'||/uuid/i.test(e.message||'')))/* other errors: the next poll retries */}
   inFlight=false;
@@ -67,35 +67,52 @@ async function refresh(){
   if(again){again=false;refresh()}
 }
 function refreshSoon(ms){if(refreshT)return;refreshT=setTimeout(()=>{refreshT=null;refresh()},ms)}
-function connect(){
-  refresh();
-  if(channel)sb.removeChannel(channel);
-  const onChange=()=>refreshSoon(V&&V.admin?250:Math.random()*300);
-  channel=sb.channel('mm-tick').on('postgres_changes',{event:'UPDATE',schema:'public',table:'mm_tick'},onChange)
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'mm_tick_admin'},()=>{if(V&&V.admin)onChange()})
-    .subscribe(status=>{rtOK=status==='SUBSCRIBED';if(rtOK)refresh()});
+let liveFor=null,lastRev=null,tickBusy=false;
+// admin and coaches use Realtime; store managers check a tiny counter, so any crowd size stays inside plan limits
+function setupLive(){
+  const want=V.admin?'admin':V.me&&V.me.canPlay?'coach':'viewer';
+  if(want===liveFor)return;liveFor=want;
+  if(channel){sb.removeChannel(channel);channel=null}
+  rtOK=false;
+  if(want==='viewer')return;
+  const onChange=()=>refreshSoon(want==='admin'?250:Math.random()*150);
+  channel=sb.channel('mm-tick').on('postgres_changes',{event:'UPDATE',schema:'public',table:'mm_tick'},onChange);
+  if(want==='admin')channel=channel.on('postgres_changes',{event:'UPDATE',schema:'public',table:'mm_tick_admin'},onChange);
+  channel.subscribe(status=>{rtOK=status==='SUBSCRIBED';if(rtOK)refresh()});
 }
+function connect(){liveFor=null;refresh()}
+async function pollTick(){
+  if(tickBusy||document.hidden||!token||liveFor!=='viewer')return;tickBusy=true;
+  try{const {data}=await sb.from('mm_tick').select('rev').eq('id',1).single();
+    if(data){if(lastRev!==null&&data.rev!==lastRev)refreshSoon(Math.random()*400);lastRev=data.rev}
+  }catch{}
+  tickBusy=false;
+}
+setTimeout(()=>{pollTick();setInterval(pollTick,2000)},Math.random()*2000);
 setInterval(()=>{
   if(!token||!V)return;
-  const age=Date.now()-lastFetch,limit=rtOK?(V.admin?10000:8000):(V.admin?2000:4000);
-  const due=V.phase==='g2_countdown'&&V.endsAt&&svNow()>=V.endsAt&&age>800;
+  const age=Date.now()-lastFetch,viewer=liveFor==='viewer',limit=viewer?30000:rtOK?(V.admin?10000:8000):(V.admin?2000:3000);
+  const due=!viewer&&V.phase==='g2_countdown'&&V.endsAt&&svNow()>=V.endsAt&&age>800;
   if(due||age>limit)refresh();
 },500);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&token)refresh()});
 const svNow=()=>Date.now()+clockOff;
 
-function render(){ if(V.admin) return renderHost(); renderPlayer(); }
+const groupLabel=g=>g&&g.no?`กลุ่ม ${g.no} · AC ${g.nick}`:'';
+const rowLabel=r=>r.group?`กลุ่ม ${r.group} · AC ${r.nick}`:r.name;
+function render(){ if(V.admin) return location.hash==='#backoffice'?renderBO():renderHost(); renderPlayer(); }
+addEventListener('hashchange',()=>location.reload());
 
 /* ---------- player ---------- */
 function keyPlayer(){
   const m=V.me,g=m.g3||{},x=V.g3||{};
-  return [V.phase,V.round,V.board,V.recapTab,m.g1||'',m.submitted?1:0,x.signs||0,g.correct?1:0,g.wrongThisSign?1:0,(g.wrong||[]).length].join('|');
+  return [V.phase,V.round,V.board,V.recapTab,m.g1||'',m.submitted?1:0,x.signs||0,g.choice||'',m.group?m.group.no:''].join('|');
 }
 function renderPlayer(){
   document.body.className='';
   const m=V.me,key=keyPlayer();
   if(!$('.shell'))app.innerHTML=`<div class="shell"><div class="top" id="top"></div><div class="main" id="main"></div></div><div id="ov"></div>`;
-  $('#top').innerHTML=`${m.g1?`<img src="img/${m.g1}.png" alt="${A[m.g1].th}">`:''}<div class="nm">${esc(m.name)}<small>${m.level==='L4'?'หัวหน้าทีม · ':''}${esc(m.store)}</small></div>${m.score?`<span class="pts">${m.score.total} pt</span>`:''}<button class="out" id="out">ออก</button>`;
+  $('#top').innerHTML=`${m.g1?`<img src="img/${m.g1}.png" alt="${A[m.g1].th}">`:''}<div class="nm">${esc(m.name)}<small>${m.group?esc(groupLabel(m.group))+' · ':''}${esc(m.store)}</small></div>${m.score?`<span class="pts">${m.score.total} pt</span>`:''}<button class="out" id="out">ออก</button>`;
   $('#out').onclick=()=>{if(confirm('ออกจากเกม?'))logout()};
   setOnce($('#ov'),V.board&&V.scoreboard?`<div class="overlay">${boardHTML()}</div>`:'');
   patchPlayer();
@@ -110,12 +127,14 @@ function patchPlayer(){
   document.querySelectorAll('[data-b=cd]').forEach(e=>e.textContent=cdLeft());
 }
 const cdLeft=()=>Math.max(0,Math.ceil((V.endsAt-svNow())/1000));
-setInterval(()=>{if(!V)return;document.querySelectorAll('[data-b=cd]').forEach(e=>{const t=String(cdLeft());if(e.textContent!==t){e.textContent=t;if(V.admin&&+t>0)beep(660,.09)}})},100);
-const spectBanner=()=>V.me.canPlay?'':`<div class="spectate">👀 โหมดผู้ชม เกมนี้ Area Coach เป็นคนเล่นนะ</div>`;
+setInterval(()=>{if(!V)return;document.querySelectorAll('[data-b=cd]').forEach(e=>{const t=String(cdLeft());if(e.textContent!==t){e.textContent=t;if(V.admin&&+t>0&&location.hash!=='#backoffice')beep()}})},100);
+const watchText=()=>V.me.group?`ไปดูจอหลักของ AC ${esc(V.me.group.nick)} (กลุ่ม ${V.me.group.no})`:'ไปดูจอหลักกับ Area Coach ของคุณ';
+const spectBanner=()=>V.me.canPlay?'':`<div class="spectate">👀 ${watchText()}</div>`;
+const watchScreen=(m,top,sub)=>{m.innerHTML=`<div class="center"><div class="watch">👀 ${watchText()}</div>${top?`<h2 class="h brush">${top}</h2>`:''}${sub?`<p class="sub">${sub}</p>`:''}</div>`};
 function waitHTML(t,s){return `<div class="center"><div class="clock" role="img" aria-label="กำลังรอ"></div><h2 class="h brush">${t}</h2><p class="sub">${s||''}</p></div>`}
 function boardHTML(title='สกอร์บอร์ด'){
   const b=V.scoreboard||[],me=V.me&&V.me.id;
-  return `<h2 class="h brush" style="margin-bottom:12px">${title}</h2><div class="board">${b.map((r,i)=>`<div class="row ${r.id===me?'me':''}" style="animation-delay:${i*.05}s"><span class="r">${r.rank}</span><span class="n">${esc(r.name)}</span><span class="g">${r.last?'+'+r.last:''}</span><span class="t">${r.total}</span></div>`).join('')}</div>`;
+  return `<h2 class="h brush" style="margin-bottom:12px">${title}</h2><div class="board">${b.map((r,i)=>`<div class="row ${r.id===me?'me':''}" style="animation-delay:${i*.05}s"><span class="r">${r.rank}</span><span class="n">${esc(rowLabel(r))}</span><span class="g">${r.last?'+'+r.last:''}</span><span class="t">${r.total}</span></div>`).join('')}</div>`;
 }
 function hello(main,h,s){main.innerHTML=`<div class="center"><div class="critters" style="width:min(420px,90%)">${AK.map(a=>`<img src="img/${a}.png" alt="">`).join('')}</div><h2 class="h brush">${h}</h2><p class="sub">${s}</p></div>`}
 const PV={
@@ -123,17 +142,23 @@ const PV={
   lobby(m){hello(m,`พร้อมแล้ว ${esc(V.me.name)}!`,'อีกสักครู่เกมจะเริ่ม ดูจอหลักไว้นะ')},
   g1(m){V.me.g1?showResult(m,V.me.g1):quiz(m)},
   g1_end(m){V.me.g1?showResult(m,V.me.g1):quiz(m)},
-  g2_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 2</span><h2 class="h brush">สั่งงานให้<em>ตรงประเภท</em></h2><div class="rules"><div>ดูสถานการณ์บนจอหลัก แล้วโยงคำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว</div><div>ถูกครบเร็วที่สุดได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b> ไล่ลงไป</div><div>มีทั้งหมด <b>${V.g2N} สถานการณ์</b> คะแนนสะสมต่อเนื่อง</div></div></div>`},
-  g2_motion(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</span><h2 class="h brush">ดูจอหลักเลย!</h2><p class="scen">${esc(V.scenario.title)}</p><p class="sub">${esc(V.scenario.situation)}</p></div>`},
-  g2_countdown(m){m.innerHTML=`${spectBanner()}<div class="center"><p class="sub">เตรียมตัว…</p><div class="big" style="font-size:clamp(120px,35vw,240px);font-weight:800;color:var(--red);line-height:1" data-b="cd">${cdLeft()}</div></div>`},
+  groups(m){
+    const g=V.me.group;
+    if(!g){m.innerHTML=`<div class="center"><h2 class="h brush">ยังไม่มีกลุ่มของคุณ</h2><p class="sub">แจ้งทีมงานเพื่อจัดกลุ่มให้นะ</p></div>`;return}
+    m.innerHTML=V.me.canPlay?`<div class="center"><p class="sub">คุณคือหัวหน้า</p><div class="gcard"><div>กลุ่มที่</div><div class="no">${g.no}</div><div>AC ${esc(g.nick)}</div></div><p class="sub">ลูกทีม Store Manager ${V.me.members??0} คน เปิดจอนี้ให้ทีมดูตอนเล่นเกมที่ 2 และ 3</p></div>`
+    :`<div class="center"><p class="sub">${esc(V.me.store)}</p><h2 class="h brush">คุณอยู่</h2><div class="gcard"><div>กลุ่มที่</div><div class="no">${g.no}</div><div>AC ${esc(g.nick)}</div></div><p class="sub">ไปรวมตัวกับ AC ${esc(g.nick)} แล้วดูจอหลักด้วยกันในเกมที่ 2 และ 3</p></div>`;
+  },
+  g2_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 2</span><h2 class="h brush">สั่งงานให้<em>ตรงประเภท</em></h2><div class="rules"><div>ดูสถานการณ์บนจอหลัก แล้วจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว</div><div>ถูกครบได้ <b>100 pt</b> ถูกครึ่งเดียวได้ <b>50 pt</b></div><div>ถูกครบคนแรกได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b> ไล่ลงไป</div><div>มีทั้งหมด <b>${V.g2N} สถานการณ์</b> คะแนนสะสมต่อเนื่อง</div></div></div>`},
+  g2_motion(m){if(!V.me.canPlay)return watchScreen(m,esc(V.scenario.title),`สถานการณ์ที่ ${V.scenario.n}/${V.g2N}`);m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</span><h2 class="h brush">ดูจอหลักเลย!</h2><p class="scen">${esc(V.scenario.title)}</p><p class="sub">${esc(V.scenario.situation)}</p></div>`},
+  g2_countdown(m){if(!V.me.canPlay)return watchScreen(m,esc(V.scenario.title),'เตรียมตัว…');m.innerHTML=`<div class="center"><p class="sub">เตรียมตัว…</p><div class="big" style="font-size:clamp(120px,35vw,240px);font-weight:800;color:var(--red);line-height:1" data-b="cd">${cdLeft()}</div></div>`},
   g2_match(m){
-    if(!V.me.canPlay) return spectMatch(m);
+    if(!V.me.canPlay) return watchScreen(m,esc(V.scenario.title),`AC กำลังจับคู่คำสั่ง สถานการณ์ที่ ${V.scenario.n}/${V.g2N}`);
     if(V.me.submitted) return m.innerHTML=waitHTML('ส่งแล้ว รอเฉลยนะ','แอดมินกำลังรอทุกคน · ส่งแล้ว <span data-b="submitted"></span>')+'',patchPlayer();
     linkGame(m);
   },
   g2_reveal(m){
     const r=V.me.result;
-    const yours=V.me.canPlay?`<div class="yours">${r?`ถูก ${r.correct}/4 คู่ ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัส ${r.bonus})`:''}`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
+    const yours=V.me.canPlay?`<div class="yours">${r?`ถูก ${r.correct}/4 คู่ ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัสความเร็ว ${r.bonus})`:''}`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
     const wrong=V.recapTab==='wrong';
     m.innerHTML=`${spectBanner()}${yours}<div class="round">เฉลย สถานการณ์ที่ ${V.scenario.n}</div><h2 class="scen" style="margin-bottom:4px">${esc(V.scenario.title)}</h2><p class="sub" style="margin-bottom:12px">เป้าหมาย: ${esc(V.scenario.goal)}</p>
     ${V.answer.map(x=>`<div class="rcard"><img src="img/${x.a}.png" alt=""><div><b>${A[x.a].th}</b>${wrong?`<small>ถ้าพูดว่า: ${esc(x.wrong.say)}</small>→ ${esc(x.wrong.result)}`:esc(x.cmd)}</div></div>`).join('')}`;
@@ -141,11 +166,11 @@ const PV={
   },
   g2_scores(m){m.innerHTML=boardHTML(`คะแนนหลังสถานการณ์ที่ ${V.scenario.n}`)},
   g2_end(m){m.innerHTML=boardHTML('จบเกมที่ 2')},
-  g3_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 3</span><h2 class="h brush">แฟน<em>พันธุ์แท้</em> ลูกค้า</h2><div class="rules"><div>เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน</div><div>ยิ่งเปิดป้ายน้อย ยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b></div><div>ตอบถูกเร็วได้โบนัสเพิ่ม <b>15, 14, 13…</b></div><div>ตอบผิดต้องรอป้ายถัดไปจึงตอบใหม่ได้</div></div></div>`},
+  g3_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 3</span><h2 class="h brush">แฟน<em>พันธุ์แท้</em> ลูกค้า</h2><div class="rules"><div>เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน</div><div>ยิ่งเปิดป้ายน้อย ยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b></div><div>ตอบได้ครั้งเดียว ส่งแล้วล็อกทันที เฉลยพร้อมกันตอนท้าย</div><div>คนแรกที่ตอบถูกได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b> ไล่ลงไป</div></div></div>`},
   g3_board:g3Player,
   g3_reveal(m){
     const p=V.g3.persona,r=V.me.result;
-    const yours=V.me.canPlay?`<div class="yours">${r&&r.sign!=null?`ถูกตอนป้ายที่ ${r.sign+1} ได้ <b>+${r.pts} pt</b> (โบนัส ${r.bonus})`:r&&r.pts<0?`รอบนี้ <b>${r.pts} pt</b>`:'รอบนี้ยังไม่ได้คะแนน'}</div>`:'';
+    const yours=V.me.canPlay?`<div class="yours">${r&&r.sign!=null?`ตอบถูก ป้ายที่ ${r.sign+1} ได้ <b>+${r.pts} pt</b> (โบนัสความเร็ว ${r.bonus})`:r?`ตอบไม่ถูก รอบนี้ <b>${r.pts} pt</b>`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
     m.innerHTML=`${spectBanner()}${yours}<div class="center" style="min-height:0"><img class="reveal-img" src="img/${p.img}" alt=""><h2 class="h brush">${esc(p.name)}</h2><p class="tag">${esc(p.tag)}</p></div><div class="signs">${V.g3.clues.map((c,i)=>`<div class="sign"><span>${esc(c)}</span></div>`).join('')}</div>`;
     if(r&&r.sign!=null)confetti(40);
   },
@@ -184,9 +209,6 @@ async function quiz(m){
     window.scrollTo(0,0);
   }
   draw();
-}
-function spectMatch(m){
-  m.innerHTML=`${spectBanner()}<div class="round">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</div><h2 class="scen">${esc(V.scenario.title)}</h2><p class="sub" style="margin:6px 0 12px">${esc(V.scenario.situation)}</p>${V.cards.map(c=>`<div class="rcard" style="grid-template-columns:1fr">${esc(c.t)}</div>`).join('')}<p class="sub" style="text-align:center">ส่งแล้ว <span data-b="submitted"></span></p>`;patchPlayer();
 }
 let LG={round:-1,order:[],map:{},sel:null};
 function linkGame(m){
@@ -241,16 +263,17 @@ function g3Player(m){
   const g=V.g3,me=V.me.g3||{},can=V.me.canPlay;
   const isNew=g.signs>seenSigns?g.signs-1:-1;seenSigns=g.signs;
   const signs=g.clues.map((c,i)=>c?`<div class="sign ${i===isNew?'flip':''}"><span>${esc(c)}</span><span class="p">${g.signPoints[i]} pt</span></div>`:`<div class="sign closed"><span>ป้ายที่ ${i+1}</span><span class="p">${g.signPoints[i]} pt</span></div>`).join('');
-  let note='';
-  if(can){
-    if(me.correct)note='<div class="notice g">ถูกต้อง! รอเฉลยพร้อมกันนะ</div>';
-    else if(!g.signs)note='<div class="notice g" style="background:#eee;color:#555">รอเปิดป้ายแรก…</div>';
-    else if(me.wrongThisSign)note='<div class="notice">ยังไม่ใช่! รอป้ายถัดไปแล้วตอบใหม่</div>';
+  if(!can){m.innerHTML=`${spectBanner()}<div class="round">คนที่ ${V.round+1}/${V.g3N} · เค้าคือใคร?</div><div class="signs">${signs}</div>`;return}
+  if(me.choice){
+    const c=V.choices.find(x=>x.id===me.choice);
+    m.innerHTML=`<div class="round">คนที่ ${V.round+1}/${V.g3N} · เค้าคือใคร?</div><div class="center" style="min-height:0;margin:12px 0"><div class="clock" style="width:90px;height:90px;border-width:8px"></div><h2 class="h brush">ส่งคำตอบแล้ว รอเฉลย</h2><p class="sub">คุณตอบ <b>${esc(c?c.name:'')}</b> คำตอบล็อกแล้ว</p></div><div class="signs">${signs}</div>`;
+    return;
   }
-  const lock=!can||me.correct||!g.signs||me.wrongThisSign;
-  m.innerHTML=`${spectBanner()}<div class="round">คนที่ ${V.round+1}/${V.g3N} · เค้าคือใคร?</div>${note}${me.correct?`<div class="center" style="min-height:0;margin:8px 0"><div class="clock" style="width:80px;height:80px;border-width:7px"></div></div>`:''}<div class="signs">${signs}</div>
-  <div class="choices">${V.choices.map(c=>`<button class="choice ${(me.wrong||[]).includes(c.id)?'x':''}" data-c="${c.id}" ${lock||(me.wrong||[]).includes(c.id)?'disabled':''}><img src="img/${c.img}" alt="">${esc(c.name)}</button>`).join('')}</div>`;
+  const lock=!g.signs;
+  m.innerHTML=`<div class="round">คนที่ ${V.round+1}/${V.g3N} · เค้าคือใคร?</div>${lock?'<div class="notice g" style="background:#eee;color:#555">รอเปิดป้ายแรก…</div>':'<div class="notice g" style="background:#fff4d6;color:#7a5600">ตอบได้ครั้งเดียว ส่งแล้วล็อกทันที</div>'}<div class="signs">${signs}</div>
+  <div class="choices">${V.choices.map(c=>`<button class="choice" data-c="${c.id}" ${lock?'disabled':''}><img src="img/${c.img}" alt="">${esc(c.name)}</button>`).join('')}</div>`;
   m.querySelectorAll('.choice:not([disabled])').forEach(b=>b.onclick=async()=>{
+    if(!confirm(`ตอบ ${b.textContent.trim()} ใช่ไหม? ส่งแล้วเปลี่ยนไม่ได้`))return;
     m.querySelectorAll('.choice').forEach(x=>x.disabled=true);
     const j=await act({type:'g3',choice:b.dataset.c});
     if(j.error){toast(j.error);lastKey='';renderPlayer()}
@@ -258,9 +281,9 @@ function g3Player(m){
 }
 
 /* ---------- projector / admin ---------- */
-let audio=null,muted=false;
-function beep(f,d){if(muted)return;try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=f;g.gain.value=.15;g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch{}}
-const fanfare=()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.22),i*130));
+const beep=()=>MMAudio.tick();
+const fanfare=()=>MMAudio.fanfare();
+document.addEventListener('pointerdown',()=>{if(V&&V.admin&&location.hash!=='#backoffice')MMAudio.unlock()},{capture:true});
 function fit(){const s=$('#stage');if(!s)return;const k=Math.min(innerWidth/1920,innerHeight/1080);s.style.transform=`scale(${k}) translate(-50%,-50%)`}
 addEventListener('resize',fit);
 let panelOpen=false,barHidden=false;
@@ -268,11 +291,11 @@ function keyHost(){const g=V.g3||{};return [V.phase,V.round,V.board,V.recapTab,g
 function renderHost(){
   document.body.className='host';
   if(!$('#stage')){app.innerHTML=`<div id="stage"><div class="brand">TEAM <i>BONCHON</i></div><div id="scr"></div><div id="ovl"></div><div class="bar" id="bar"></div><div id="pn"></div></div>`;fit();}
-  $('#stage').classList.toggle('nobar',barHidden);$('#stage').classList.toggle('deco',['idle','lobby','g2_intro','g3_intro','g1'].includes(V.phase));
+  $('#stage').classList.toggle('nobar',barHidden);$('#stage').classList.toggle('deco',['idle','lobby','groups','g2_intro','g3_intro','g1'].includes(V.phase));
   drawBar();
   patchHost();
   const key=keyHost();
-  if(key!==lastKey){const old=lastKey;lastKey=key;
+  if(key!==lastKey){const old=lastKey;lastKey=key;if(old)MMAudio.transition();if(V.phase!=='g2_motion')MMAudio.duck(false);
     (HV[V.phase]||HV.idle)($('#scr'),old);patchHost();
   }
   setOnce($('#ovl'),V.board&&V.scoreboard?`<div class="hboard-ov"><h2 class="t2 brush">สกอร์<em>บอร์ด</em></h2>${hBoard()}</div>`:'');
@@ -282,15 +305,16 @@ function drawBar(){
   const a=V.admin;
   $('#bar').innerHTML=`<button class="btn ghost ${V.board?'on':''}" id="bBoard">🏆 สกอร์บอร์ด</button>
     ${V.phase==='g2_reveal'?`<button class="btn ghost ${V.recapTab==='wrong'?'on':''}" id="bWrong">ถ้าพูดผิดสไตล์</button>`:''}
-    <button class="btn ghost" id="bSet">⚙️ ตั้งค่า</button><button class="btn ghost" id="bExp">⬇️ Export</button><button class="btn ghost" id="bFs">⛶</button><button class="btn ghost" id="bMute">${muted?'🔇':'🔊'}</button>
+    <button class="btn ghost" id="bSet">⚙️ ตั้งค่า</button><button class="btn ghost" id="bBo">📊 หลังบ้าน</button><button class="btn ghost" id="bFs">⛶</button><button class="btn ghost ${MMAudio.musicOn?'on':''}" id="bMusic">🎵</button><button class="btn ghost ${MMAudio.sfxOn?'on':''}" id="bMute">🔔</button>
     <span class="stat">เข้าแล้ว ${a.joined.length}/${V.totalUsers}</span>
     ${a.draftAssessment?'<span class="warn">เกม 1 ใช้คำถามทดสอบ</span>':''}
     ${a.nextLabel?`<button class="btn primary" id="bNext">${esc(a.nextLabel)}</button>`:'<span style="margin-left:auto"></span>'}`;
   $('#bBoard').onclick=()=>cmd({cmd:'board',on:!V.board});
   if($('#bWrong'))$('#bWrong').onclick=()=>cmd({cmd:'recapTab',tab:V.recapTab==='wrong'?'answer':'wrong'});
-  $('#bSet').onclick=openPanel;$('#bExp').onclick=exportExcel;
+  $('#bSet').onclick=openPanel;$('#bBo').onclick=()=>window.open(location.pathname+'#backoffice','_blank');
   $('#bFs').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();
-  $('#bMute').onclick=()=>{muted=!muted;drawBar()};
+  $('#bMute').onclick=()=>{MMAudio.sfx(!MMAudio.sfxOn);drawBar()};
+  $('#bMusic').onclick=()=>{MMAudio.music(!MMAudio.musicOn);drawBar()};
   if($('#bNext'))$('#bNext').onclick=()=>{beep(880,.08);cmd({cmd:'next'})};
 }
 document.addEventListener('keydown',e=>{
@@ -305,11 +329,11 @@ function patchHost(){
   set('submitted',`${V.submitted??0}/${V.totalPlayers}`);
   set('joined',V.admin.joined.length);
   if(V.g1Done!=null){set('g1done',V.g1Done);for(const a of AK)set('n-'+a,V.g1Counts[a])}
-  if(V.g3){set('answered',V.g3.correctCount)}
+  if(V.g3){set('answered',V.g3.answered)}
   const chips=$('#chips');
   if(chips){const have=chips.children.length;const list=V.admin.joined;for(let i=have;i<list.length;i++){const d=document.createElement('span');d.className='chip '+(list[i].l==='L4'?'l4':'');d.textContent=list[i].n;chips.appendChild(d)}}
 }
-function hBoard(){return `<div class="hboard" style="grid-template-rows:repeat(${Math.max(1,(V.scoreboard||[]).length)},1fr)">${(V.scoreboard||[]).map((r,i)=>`<div class="hrow ${i===0&&r.total>0?'top1':''}" style="animation-delay:${i*.06}s"><span class="r">${r.rank}</span><span>${esc(r.name)}</span><span class="g">${r.last?'+'+r.last:''}</span><span class="t">${r.total}</span></div>`).join('')}</div>`}
+function hBoard(){return `<div class="hboard" style="grid-template-rows:repeat(${Math.max(1,(V.scoreboard||[]).length)},1fr)">${(V.scoreboard||[]).map((r,i)=>`<div class="hrow ${i===0&&r.total>0?'top1':''}" style="animation-delay:${i*.06}s"><span class="r">${r.rank}</span><span>${esc(rowLabel(r))}</span><span class="g">${r.last?'+'+r.last:''}</span><span class="t">${r.total}</span></div>`).join('')}</div>`}
 function introHost(s,tag,t,lines,img){s.innerHTML=`<div class="scr c"><span class="tag" style="font-size:40px">${tag}</span><h1 class="t1 brush" style="margin:16px 0 26px">${t}</h1><div style="display:flex;gap:30px;align-items:center;font-size:36px;text-align:left">${img?`<img src="${img}" alt="" style="height:440px;border-radius:20px">`:''}<div class="rules" style="width:1100px">${lines.map(l=>`<div>${l}</div>`).join('')}</div></div></div>`}
 const HV={
   idle(s){s.innerHTML=`<div class="scr c"><div class="critters" style="width:800px;margin-bottom:10px">${AK.map(a=>`<img src="img/${a}.png" alt="">`).join('')}</div><h1 class="t1 brush">Manager <em>Meeting</em> Game</h1><p class="t3" style="color:var(--mute);margin-top:12px">กด Launch เมื่อพร้อมให้ทุกคนเข้าเกม</p></div>`},
@@ -320,40 +344,41 @@ const HV={
   },
   g1(s){s.innerHTML=`<div class="scr"><span class="tag" style="font-size:30px;align-self:flex-start;margin-top:14px">เกมที่ 1</span><h1 class="t2 brush" style="margin-top:8px">เราคือสัตว์<em>ประเภทไหน?</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800;font-size:72px">0</span> / ${V.totalUsers} คน ทำเสร็จแล้ว</p>${dist()}</div>`},
   g1_end(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:16px">ทีมเราเป็น<em>แบบนี้!</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800">0</span> คน ได้รับสติ๊กเกอร์ของตัวเอง</p>${dist()}</div>`;fanfare();confetti(90)},
-  g2_intro(s){introHost(s,'เกมที่ 2','สั่งงานให้<em>ตรงประเภท</em>',['ดูสถานการณ์ แล้ว Area Coach โยงคำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว','ถูกครบเร็วที่สุดได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b> ไล่ลงไป',`ทั้งหมด <b>${V.g2N} สถานการณ์</b> Store Manager ร่วมลุ้นบนจอ`])},
+  groups(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">แบ่ง<em>กลุ่ม</em> ไปรวมตัวกับ AC ของคุณ</h1><div class="hgroups">${(V.groups||[]).map(g=>`<div class="hgroup"><b>${g.no}</b><span>AC ${esc(g.nick)}</span><small>${g.members} คน</small></div>`).join('')}</div></div>`},
+  g2_intro(s){introHost(s,'เกมที่ 2','สั่งงานให้<em>ตรงประเภท</em>',['AC ของแต่ละกลุ่มจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว','ถูกครบ <b>100 pt</b> ถูกครึ่งเดียว <b>50 pt</b>','ถูกครบคนแรกได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b> ไล่ลงไป',`ทั้งหมด <b>${V.g2N} สถานการณ์</b> ลูกทีมร่วมลุ้นที่จอหลักของ AC`])},
   g2_motion(s){
     const n=V.scenario.n;
     s.innerHTML=`<div class="scr c"><span class="tag" style="font-size:40px">สถานการณ์ที่ ${n}/${V.g2N}</span><h1 class="t1 brush" style="margin:22px 0;max-width:1650px">${esc(V.scenario.title)}</h1><p class="t3" style="max-width:1400px;font-size:48px">${esc(V.scenario.situation)}</p><p id="noMotion" style="color:var(--mute);margin-top:26px;font-size:24px"></p></div>`;
     hasVideo(n).then(ok=>{
       if(V.phase!=='g2_motion'||V.scenario.n!==n)return;
-      if(!ok){const e=$('#noMotion');if(e)e.textContent=`ยังไม่มี Motion ของสถานการณ์นี้ (อัปโหลดเป็น s${n}.mp4)`;return}
-      s.innerHTML=`<div class="motion"><video id="mv" playsinline controls src="${esc(videoUrl(n))}"></video></div>`;
-      const v=$('#mv');v.onended=()=>{if(V.phase==='g2_motion')cmd({cmd:'next'})};v.play().catch(()=>toast('กดปุ่มเล่นบนวิดีโอ'));
+      if(!ok){const e=$('#noMotion');if(e)e.textContent=`ยังไม่มี Motion ของสถานการณ์นี้ อัปโหลดได้ที่ 📊 หลังบ้าน`;return}
+      s.innerHTML=`<div class="motion"><video id="mv" playsinline controls src="${esc(videoUrl(n))}?v=${Date.now()}"></video></div>`;
+      const v=$('#mv');MMAudio.duck(true);v.onended=()=>{MMAudio.duck(false);if(V.phase==='g2_motion')cmd({cmd:'next'})};v.play().catch(()=>toast('กดปุ่มเล่นบนวิดีโอ'));
     });
   },
   g2_countdown(s){s.innerHTML=`<div class="scr c"><p class="t3">เตรียมโยงคำสั่ง!</p><div class="cd go" data-b="cd">${cdLeft()}</div><p class="t2 brush">${esc(V.scenario.title)}</p></div>`},
-  g2_match(s){s.innerHTML=`<div class="scr"><div style="display:flex;gap:18px;align-items:baseline;margin-top:12px"><span class="tag" style="font-size:28px">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</span><h1 class="t2 brush" style="font-size:54px">${esc(V.scenario.title)}</h1></div><div class="hanimals">${AK.map(a=>`<div class="hanimal"><img src="img/${a}.png" alt=""><div><b>${A[a].th}</b><small>${A[a].talk}</small></div></div>`).join('')}</div><div class="hmatch"><div class="hcards">${V.cards.map(c=>`<div class="hcard">${esc(c.t)}</div>`).join('')}</div><div class="hside"><div class="clock"></div><div class="t3">ส่งแล้ว</div><div class="big" style="font-size:96px" data-b="submitted"></div></div></div></div>`},
+  g2_match(s){s.innerHTML=`<div class="scr"><div style="display:flex;gap:18px;align-items:baseline;margin-top:12px"><span class="tag" style="font-size:28px">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</span><h1 class="t2 brush" style="font-size:54px">${esc(V.scenario.title)}</h1></div><div class="hanimals">${AK.map(a=>`<div class="hanimal"><img src="img/${a}.png" alt=""><div><b>${A[a].th}</b><small>${A[a].talk}</small></div></div>`).join('')}</div><div class="hmatch"><div class="hcards">${V.cards.map(c=>`<div class="hcard">${esc(c.t)}</div>`).join('')}</div><div class="hside"><div class="clock"></div><div class="t3">ส่งคำตอบแล้ว</div><div class="big" style="font-size:96px" data-b="submitted"></div><div class="t3">กลุ่ม</div></div></div></div>`},
   g2_reveal(s){
     const w=V.recapTab==='wrong';
-    s.innerHTML=`<div class="scr"><div style="display:flex;gap:18px;align-items:baseline;margin-top:12px"><span class="tag" style="font-size:28px">${w?'ถ้าพูดผิดสไตล์':'เฉลย'}</span><h1 class="t2 brush" style="font-size:54px">${esc(V.scenario.title)}</h1></div><p style="font-size:28px;color:var(--mute)">เป้าหมายร่วม: ${esc(V.scenario.goal)} ${w?'':` · ตอบถูกครบ ${V.allCorrect??0} คน`}</p><div class="recap">${V.answer.map(x=>`<div class="rc"><img src="img/${x.a}.png" alt=""><h3>${A[x.a].th}</h3>${w?`<p class="bad">✗ ${esc(x.wrong.say)}</p><p>→ ${esc(x.wrong.result)}</p>`:`<p>${esc(x.cmd)}</p>`}</div>`).join('')}</div></div>`;
+    s.innerHTML=`<div class="scr"><div style="display:flex;gap:18px;align-items:baseline;margin-top:12px"><span class="tag" style="font-size:28px">${w?'ถ้าพูดผิดสไตล์':'เฉลย'}</span><h1 class="t2 brush" style="font-size:54px">${esc(V.scenario.title)}</h1></div><p style="font-size:28px;color:var(--mute)">เป้าหมายร่วม: ${esc(V.scenario.goal)} ${w?'':` · ถูกครบ ${V.allCorrect??0} กลุ่ม`}</p><div class="recap">${V.answer.map(x=>`<div class="rc"><img src="img/${x.a}.png" alt=""><h3>${A[x.a].th}</h3>${w?`<p class="bad">✗ ${esc(x.wrong.say)}</p><p>→ ${esc(x.wrong.result)}</p>`:`<p>${esc(x.cmd)}</p>`}</div>`).join('')}</div></div>`;
     if(!w)fanfare();
   },
   g2_scores(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">สกอร์บอร์ด <em>หลังสถานการณ์ที่ ${V.scenario.n}</em></h1>${hBoard()}</div>`},
   g2_end(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">จบ<em>เกมที่ 2</em></h1>${hBoard()}</div>`;fanfare()},
-  g3_intro(s){introHost(s,'เกมที่ 3','แฟน<em>พันธุ์แท้</em> ลูกค้า',['เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน','ยิ่งเปิดน้อยยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b>','ตอบถูกเร็วได้โบนัสเพิ่ม <b>15, 14, 13…</b>'],'img/personas-all.jpg')},
+  g3_intro(s){introHost(s,'เกมที่ 3','แฟน<em>พันธุ์แท้</em> ลูกค้า',['เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน','ยิ่งเปิดน้อยยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b>','แต่ละกลุ่มตอบได้ครั้งเดียว เฉลยพร้อมกันตอนท้าย','คนแรกที่ตอบถูกได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b>'],'img/personas-all.jpg')},
   g3_board(s){
-    const g=V.g3,isNew=g.signs>seenSigns?g.signs-1:-1;seenSigns=g.signs;if(isNew>=0)beep(720,.15);
-    s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">เค้าคือ<em>ใคร?</em> <span style="font-size:32px;color:var(--mute);font-style:normal;font-weight:500">คนที่ ${V.round+1}/${V.g3N}</span></h1><div class="g3grid"><div class="g3side"><div class="mystery">?</div><div class="t3">ตอบถูกแล้ว <b data-b="answered" style="color:var(--red)">0</b>/${V.totalPlayers} คน</div></div><div class="hsigns">${g.clues.map((c,i)=>c?`<div class="hsign ${i===isNew?'flip':''}"><span>${esc(c)}</span><span class="p">${g.signPoints[i]} pt</span></div>`:`<div class="hsign closed"><span>ป้ายที่ ${i+1}</span><span class="p">${g.signPoints[i]} pt</span></div>`).join('')}</div></div></div>`;
+    const g=V.g3,isNew=g.signs>seenSigns?g.signs-1:-1;seenSigns=g.signs;if(isNew>=0)MMAudio.open();
+    s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">เค้าคือ<em>ใคร?</em> <span style="font-size:32px;color:var(--mute);font-style:normal;font-weight:500">คนที่ ${V.round+1}/${V.g3N}</span></h1><div class="g3grid"><div class="g3side"><div class="mystery">?</div><div class="t3">ส่งคำตอบแล้ว <b data-b="answered" style="color:var(--red)">0</b>/${V.totalPlayers} กลุ่ม</div></div><div class="hsigns">${g.clues.map((c,i)=>c?`<div class="hsign ${i===isNew?'flip':''}"><span>${esc(c)}</span><span class="p">${g.signPoints[i]} pt</span></div>`:`<div class="hsign closed"><span>ป้ายที่ ${i+1}</span><span class="p">${g.signPoints[i]} pt</span></div>`).join('')}</div></div></div>`;
   },
   g3_reveal(s){
     const g=V.g3,p=g.persona;seenSigns=-1;
-    s.innerHTML=`<div class="scr"><div class="g3grid" style="margin-top:28px"><div class="g3side"><img class="pic" src="img/${esc(p.img)}" alt=""></div><div style="display:flex;flex-direction:column;justify-content:center;min-height:0"><h1 class="t1 brush"><em>${esc(p.name)}</em></h1><p class="tag" style="font-size:42px;align-self:flex-start;margin:8px 0 18px">${esc(p.tag)}</p><div class="hsigns" style="flex:none;gap:10px">${g.clues.map(c=>`<div class="hsign" style="min-height:72px;font-size:32px"><span>${esc(c)}</span></div>`).join('')}</div><p class="t3" style="margin-top:14px">ตอบถูก ${g.correctCount}/${V.totalPlayers} คน</p></div></div></div>`;
+    s.innerHTML=`<div class="scr"><div class="g3grid" style="margin-top:28px"><div class="g3side"><img class="pic" src="img/${esc(p.img)}" alt=""></div><div style="display:flex;flex-direction:column;justify-content:center;min-height:0"><h1 class="t1 brush"><em>${esc(p.name)}</em></h1><p class="tag" style="font-size:42px;align-self:flex-start;margin:8px 0 18px">${esc(p.tag)}</p><div class="hsigns" style="flex:none;gap:10px">${g.clues.map(c=>`<div class="hsign" style="min-height:72px;font-size:32px"><span>${esc(c)}</span></div>`).join('')}</div><p class="t3" style="margin-top:14px">ตอบถูก ${g.correctCount}/${V.totalPlayers} กลุ่ม</p></div></div></div>`;
     fanfare();
   },
   g3_scores(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">สกอร์บอร์ด <em>หลังคนที่ ${V.round+1}</em></h1>${hBoard()}</div>`},
   final(s){
     const b=V.scoreboard||[],o=[b[1],b[0],b[2]],cl=['p2','p1','p3'],md=['🥈','🥇','🥉'];
-    s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px;text-align:center">สุดยอด<em>แฟนพันธุ์แท้!</em></h1><div class="podium">${o.map((r,i)=>r?`<div class="pod ${cl[i]}"><div class="m">${md[i]}</div><div class="nm">${esc(r.name)}</div><div class="sc">${r.total}</div></div>`:'<div></div>').join('')}</div></div>`;
+    s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px;text-align:center">สุดยอด<em>แฟนพันธุ์แท้!</em></h1><div class="podium">${o.map((r,i)=>r?`<div class="pod ${cl[i]}"><div class="m">${md[i]}</div><div class="nm">${esc(rowLabel(r))}</div><div class="sc">${r.total}</div></div>`:'<div></div>').join('')}</div></div>`;
     fanfare();confetti(160);setTimeout(()=>confetti(120),1800);
   },
 };
@@ -366,23 +391,22 @@ function openPanel(){
   panelOpen=true;const a=V.admin,s=a.settings;
   $('#pn').innerHTML=`<div class="panel"><button class="x" id="pX">ปิด</button><h2>ตั้งค่าเกม</h2>
   <h3>คะแนน</h3><div class="grid">
-    <div><label>เกม 2: คะแนนต่อคู่ที่ถูก</label><input id="sPair" type="number" min="0" value="${s.pairPoints}"></div>
+    <div><label>เกม 2: ถูกครบ 4 คู่</label><input id="sFull" type="number" min="0" value="${s.fullPoints}"></div>
+    <div><label>เกม 2: ถูก 2 คู่</label><input id="sHalf" type="number" min="0" value="${s.halfPoints}"></div>
     <div><label>โบนัสคนแรก (ลดทีละ 1)</label><input id="sBonus" type="number" min="0" value="${s.bonusStart}"></div>
     <div><label>เกม 3: หักคะแนนเมื่อตอบผิด</label><input id="sPen" type="number" min="0" value="${s.wrongPenalty}"></div>
     <div><label>เกม 3: จำนวนแผ่นป้าย (1–5)</label><input id="sCount" type="number" min="1" max="5" value="${s.signCount}"></div>
     <div style="grid-column:span 2"><label>คะแนนแต่ละป้าย คั่นด้วยจุลภาค</label><input id="sPts" value="${s.signPoints.join(', ')}"></div>
   </div><button class="btn" id="sSave" style="margin-top:12px;min-height:44px">บันทึกคะแนน</button>
   <p style="color:var(--mute);font-size:17px;margin-top:6px">จำนวนป้ายมีผลกับคนที่ยังไม่เริ่มเล่น สมชายมีคำใบ้ 4 ข้อจึงเปิดได้สูงสุด 4 ป้าย</p>
-  <h3>Motion สถานการณ์ (เกม 2)</h3><p style="color:var(--mute);font-size:18px">อัปโหลดที่ Supabase &gt; Storage &gt; motions ตั้งชื่อ s1.mp4 ถึง s10.mp4 แล้วกดเช็ก</p><button class="btn w" id="vChk" style="min-height:40px;margin-bottom:6px">เช็กไฟล์อีกครั้ง</button><div id="vids"></div>
   <h3>ข้ามไปหน้าอื่น</h3><div class="jump">
-    <select id="jg">${[['lobby','Lobby'],['g1','เกม 1'],['g1_end','สรุปเกม 1'],['g2_intro','เกม 2: กติกา'],['g2_end','สรุปเกม 2'],['g3_intro','เกม 3: กติกา'],['final','ผลรวมสุดท้าย']].map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><button class="btn k" id="jgo">ไป</button>
+    <select id="jg">${[['lobby','Lobby'],['g1','เกม 1'],['g1_end','สรุปเกม 1'],['groups','แบ่งกลุ่ม'],['g2_intro','เกม 2: กติกา'],['g2_end','สรุปเกม 2'],['g3_intro','เกม 3: กติกา'],['final','ผลรวมสุดท้าย']].map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><button class="btn k" id="jgo">ไป</button>
     <select id="js">${a.scenarios.map((x,i)=>`<option value="${i}">สถานการณ์ ${x.n}</option>`).join('')}</select><button class="btn k" id="jso">เล่นข้อนี้ใหม่</button>
     <select id="jp">${a.personas.map((x,i)=>`<option value="${i}">${esc(x.name)}</option>`).join('')}</select><button class="btn k" id="jpo">เล่นคนนี้ใหม่</button>
   </div>
   <h3>ข้อมูล</h3><div class="jump"><button class="btn k" id="xXlsx">⬇️ ดาวน์โหลด Excel</button><button class="btn w" id="xScore">ล้างคะแนนเกม 2–3</button><button class="btn" id="xAll">รีเซ็ตเกมทั้งหมด</button><button class="btn w" id="xOut">ออกจากระบบ</button></div></div>`;
-  drawVideos();$('#vChk').onclick=drawVideos;
   $('#pX').onclick=()=>{panelOpen=false;$('#pn').innerHTML=''};
-  $('#sSave').onclick=async()=>{const j=await cmd({cmd:'settings',settings:{pairPoints:$('#sPair').value,bonusStart:$('#sBonus').value,wrongPenalty:$('#sPen').value,signCount:$('#sCount').value,signPoints:$('#sPts').value.split(',').map(x=>+x.trim())}});if(j&&j.ok)toast('บันทึกแล้ว')};
+  $('#sSave').onclick=async()=>{const j=await cmd({cmd:'settings',settings:{fullPoints:$('#sFull').value,halfPoints:$('#sHalf').value,bonusStart:$('#sBonus').value,wrongPenalty:$('#sPen').value,signCount:$('#sCount').value,signPoints:$('#sPts').value.split(',').map(x=>+x.trim())}});if(j&&j.ok)toast('บันทึกแล้ว')};
   $('#jgo').onclick=()=>{if(confirm('ข้ามไปหน้านี้?'))cmd({cmd:'goto',phase:$('#jg').value})};
   $('#jso').onclick=()=>{if(confirm('เล่นข้อนี้ใหม่? คะแนนของข้อนี้จะถูกล้าง')){cmd({cmd:'goto',phase:'g2_motion',round:$('#js').value,clear:true});$('#pX').click()}};
   $('#jpo').onclick=()=>{if(confirm('เล่นคนนี้ใหม่? คะแนนของรอบนี้จะถูกล้าง')){seenSigns=-1;cmd({cmd:'goto',phase:'g3_board',round:$('#jp').value,clear:true});$('#pX').click()}};
@@ -396,25 +420,19 @@ async function exportExcel(){
   if(j.error)return toast(j.error);
   const th=a=>a?A[a].th:'',yn=v=>v===true?'ถูก':v===false?'ผิด':'',d=new Date(j.at),stamp=d.toLocaleString('th-TH'),rows=j.rows||[];
   const sheets=[
-    {name:'สรุปรายคน',head:['รหัสพนักงาน','ชื่อ','ระดับ','กลุ่ม','สาขา/ตำแหน่ง','เข้าเกม','สัตว์','คะแนนเกม 2','คะแนนเกม 3','คะแนนรวม'],
-      rows:rows.map(r=>[r.id,r.name,r.level,r.group,r.store,r.joined?'เข้าแล้ว':'ยังไม่เข้า',th(r.animal),r.g2,r.g3,r.total])},
-    {name:'เกม 1 สัตว์',head:['รหัสพนักงาน','ชื่อ','ระดับ','สาขา/ตำแหน่ง','สัตว์','A กระทิง','B อินทรี','C หนู','D หมี','Gap ของฉันคือ','Shift ถัดไปฉันจะ'],
-      rows:rows.filter(r=>r.animal).map(r=>[r.id,r.name,r.level,r.store,th(r.animal),r.counts.bull,r.counts.eagle,r.counts.rat,r.counts.bear,r.gap,r.next])},
-    {name:'เกม 2 สั่งงาน',head:['ข้อ','สถานการณ์','รหัสพนักงาน','ชื่อ','ลำดับส่ง','กระทิง','อินทรี','หนู','หมี','ถูก (คู่)','คะแนนฐาน','โบนัส','คะแนนรวม'],
-      rows:j.g2.map(r=>[r.n,r.title,r.id,r.name,r.order,yn(r.pairs.bull),yn(r.pairs.eagle),yn(r.pairs.rat),yn(r.pairs.bear),r.correct,r.base,r.bonus,r.pts])},
-    {name:'เกม 3 พันธุ์แท้',head:['คนที่','Persona','รหัสพนักงาน','ชื่อ','ถูกที่ป้าย','ตอบผิด (ครั้ง)','ที่ตอบผิด','คะแนนฐาน','โบนัส','หักคะแนน','คะแนนรวม'],
-      rows:j.g3.map(r=>[r.n,r.persona,r.id,r.name,r.sign===null?'ไม่ถูก':r.sign+1,r.wrong,r.wrongNames,r.base,r.bonus,r.penalty,r.pts])},
-    {name:'สกอร์บอร์ด',head:['อันดับ','รหัสพนักงาน','ชื่อ','คะแนนเกม 2','คะแนนเกม 3','คะแนนรวม'],rows:j.board.map(r=>[r.rank,r.id,r.name,r.g2,r.g3,r.total])},
+    {name:'สรุปรายคน',head:['กลุ่ม','AC','รหัสพนักงาน','ชื่อ','ระดับ','ประเภท','สาขา/ตำแหน่ง','เข้าเกม','สัตว์','คะแนนเกม 2','คะแนนเกม 3','คะแนนรวม'],
+      rows:rows.map(r=>[r.groupNo,r.nick,r.id,r.name,r.level,r.group,r.store,r.joined?'เข้าแล้ว':'ยังไม่เข้า',th(r.animal),r.g2,r.g3,r.total])},
+    {name:'เกม 1 สัตว์',head:['กลุ่ม','รหัสพนักงาน','ชื่อ','ระดับ','สาขา/ตำแหน่ง','สัตว์','A กระทิง','B อินทรี','C หนู','D หมี','Gap ของฉันคือ','Shift ถัดไปฉันจะ'],
+      rows:rows.filter(r=>r.animal).map(r=>[r.groupNo,r.id,r.name,r.level,r.store,th(r.animal),r.counts.bull,r.counts.eagle,r.counts.rat,r.counts.bear,r.gap,r.next])},
+    {name:'เกม 2 สั่งงาน',head:['ข้อ','สถานการณ์','กลุ่ม','รหัสพนักงาน','ชื่อ','ลำดับส่ง','กระทิง','อินทรี','หนู','หมี','ถูก (คู่)','คะแนนฐาน','โบนัส','คะแนนรวม'],
+      rows:j.g2.map(r=>[r.n,r.title,r.groupNo,r.id,r.name,r.order,yn(r.pairs.bull),yn(r.pairs.eagle),yn(r.pairs.rat),yn(r.pairs.bear),r.correct,r.base,r.bonus,r.pts])},
+    {name:'เกม 3 พันธุ์แท้',head:['คนที่','Persona','กลุ่ม','รหัสพนักงาน','ชื่อ','ตอบ','ตอบตอนป้ายที่','ผล','คะแนนฐาน','โบนัส','หักคะแนน','คะแนนรวม'],
+      rows:j.g3.map(r=>[r.n,r.persona,r.groupNo,r.id,r.name,r.choice,r.sign,r.correct?'ถูก':'ผิด',r.base,r.bonus,r.penalty,r.pts])},
+    {name:'สกอร์บอร์ด',head:['อันดับ','กลุ่ม','AC','รหัสพนักงาน','ชื่อ','คะแนนเกม 2','คะแนนเกม 3','คะแนนรวม'],rows:j.board.map(r=>[r.rank,r.group,r.nick,r.id,r.name,r.g2,r.g3,r.total])},
     {name:'ข้อมูลไฟล์',head:['รายการ','ค่า'],rows:[['ดาวน์โหลดเมื่อ',stamp],['พนักงานทั้งหมด',rows.length],['เข้าเกมแล้ว',rows.filter(r=>r.joined).length],['ทำเกม 1 แล้ว',rows.filter(r=>r.animal).length]]},
   ];
   const u=URL.createObjectURL(MMXlsx(sheets)),l=document.createElement('a'),p=n=>String(n).padStart(2,'0');
   l.href=u;l.download=`manager-meeting-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.xlsx`;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('ดาวน์โหลดแล้ว');
 }
-function drawVideos(){
-  const el=$('#vids');if(!el)return;
-  el.innerHTML=V.admin.scenarios.map(x=>`<div class="vrow" style="grid-template-columns:44px 1fr 150px"><b>${x.n}</b><span>${esc(x.title)}</span><span id="vs${x.n}">กำลังเช็ก…</span></div>`).join('');
-  V.admin.scenarios.forEach(x=>hasVideo(x.n).then(ok=>{const e=$('#vs'+x.n);if(e){e.textContent=ok?'✓ มีแล้ว':'ยังไม่มี';e.className=ok?'ok':''}}));
-}
-
 /* boot */
 if(token)connect();else showLogin();

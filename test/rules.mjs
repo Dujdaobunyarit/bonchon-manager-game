@@ -8,6 +8,7 @@ const db = new PGlite();
 await db.exec(`create role anon nologin; create role authenticated nologin;`);
 await db.exec(read('supabase/schema.sql'));
 await db.exec(read('private/seed.sql'));
+await db.exec(read('supabase/update_2.sql'));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -21,8 +22,34 @@ check((await login(PW.adminUser, PW.user)).error, 'admin needs the admin passwor
 check((await login(EQ.id.replace(/^0+/, ''), PW.user)).token, 'id without leading zeros accepted');
 check((await login(FR.id, PW.user)).token, 'franchise login accepted');
 const A = (await login(PW.adminUser.toUpperCase(), PW.admin)).token, next = () => adm(A, { cmd: 'next' });
+const groupsSeed = json('data/groups-seed.json');
+check((await rpc('mm_set_groups', A, groupsSeed)).groups === 10, 'groups loaded');
+const asRow = u => ({ id: u.id, name: u.name, store: u.store, code: u.store.split('-')[0].trim() });
+const eqRows = roster.filter(u => u.group === 'equity').map(asRow), frRows = roster.filter(u => u.group === 'franchise').map(asRow);
+const imp = (g, rows, dry) => db.query('select public.mm_import($1,$2,$3,$4) v', [A, g, rows, dry]).then(r => r.rows[0].v);
+let dr = await imp('equity', eqRows, true);
+check(dr.added === 0 && dr.updated === eqRows.length && dr.removed === 0, 'import preview counts existing staff');
+const r0 = await db.query('select public.mm_view($1) v', [(await login(EQ.id, PW.user)).token]);
+check(r0.rows[0].v.me.group === null, 'preview did not change anything');
+dr = await imp('equity', eqRows, false); await imp('franchise', frRows, false);
+check(dr.noGroup.length === 1 && dr.noGroup[0].store.startsWith('PNR'), 'store not in the deck is reported without a group');
+const pnr = dr.noGroup[0];
+dr = await imp('equity', [...eqRows.filter(x => x.id !== pnr.id), { ...eqRows.find(x => x.id === pnr.id), managerId: L4[0].id }], false);
+check(dr.noGroup.length === 0, 'manager id gives a group when the store has none');
+check((await imp('equity', [{ id: '', name: 'x' }, ...eqRows, eqRows[0]], true)).invalid.length === 2, 'blank and duplicate rows reported');
+check((await imp('equity', [...eqRows, { id: L4[0].id, name: 'x', store: 'y', code: 'z' }], true)).keptCoaches === 1, 'import never overwrites a coach');
+const bsr = roster.find(u => u.store.startsWith('BSR-'));
+check((await view((await login(bsr.id, PW.user)).token)).me.group.no === 1, 'Bang Saen Resort is in group 1');
+check((await imp('nope', [], true)).error, 'unknown template rejected');
+const removeTest = await imp('franchise', [...frRows.slice(1), { id: '999123', name: 'เทสต์', store: 'BSR-X', code: 'BSR' }], false);
+check(removeTest.added === 1 && removeTest.removed === 1, 'import adds new staff and removes missing ones');
+check((await login('999123', PW.user)).token && (await login(frRows[0].id, PW.user)).error, 'imported staff can log in, removed staff cannot');
+await imp('franchise', frRows, false);
 const t1 = (await login(L4[0].id, PW.user)).token, t2 = (await login(L4[1].id, PW.user)).token, t3 = (await login(L4[2].id, PW.user)).token;
 const t5 = (await login(EQ.id, PW.user)).token;
+check((await db.query('select public.mm_set_groups($1,$2) v', [t1, groupsSeed])).rows[0].v.error, 'player cannot set groups');
+check((await db.query('select public.mm_import($1,$2,$3,$4) v', [t1, 'equity', [], true])).rows[0].v.error, 'player cannot import');
+check((await rpc('mm_monitor', t1)).error, 'player cannot open the monitor');
 // browser cannot reach private data
 check(await denied('select * from game.roster'), 'anon cannot read roster');
 check(await denied('select * from game.config'), 'anon cannot read answers');
@@ -56,14 +83,16 @@ check(await sheet(17, 'DBBBBBDCCCCC') === 'eagle', 'tie B5 C5: no match → B be
 const tp = await tk(10); check((await act(tp, { type: 'g1promise', gap: 'ใจร้อน', next: 'พูดสุภาพ' })).ok && (await view(tp)).me.promise.gap === 'ใจร้อน', 'GEL Promise saved');
 check((await act(t1, { type: 'g1promise', gap: 'x', next: 'y' })).error, 'promise needs a result first');
 // game 2
-await next(); await next(); await next(); await next();
+await next(); await next(); let gv = await view(t5);
+check(gv.phase === 'groups' && gv.me.group && gv.groups.length === 10 && gv.me.members > 0, 'after game 1 everyone sees their group');
+await next(); await next(); await next();
 let v = await view(t1);
 check(v.phase === 'g2_countdown' && v.endsAt > v.now && !v.cards, 'countdown runs, cards hidden');
 check((await act(t1, { type: 'g2', map: {} })).error, 'no submit during countdown');
 await next(); v = await view(t1);
 check(v.phase === 'g2_match' && v.cards.length === 4 && !JSON.stringify(v).includes('"a"') && !v.answer, 'match open, answers not sent');
 const v5 = await view(t5);
-check(v5.me.canPlay === false && v5.cards.length === 4, 'L5 sees cards, cannot play');
+check(v5.me.canPlay === false && !v5.cards && v5.me.group.nick, 'L5 is sent to the AC screen');
 check((await act(t5, { type: 'g2', map: {} })).error, 'L5 cannot submit game 2');
 const sc = content.scenarios[0], correct = Object.fromEntries(Object.keys(sc.commands).map(k => [k, v.cards.find(x => x.t === sc.commands[k]).id]));
 const swapped = { ...correct, bull: correct.eagle, eagle: correct.bull };
@@ -72,20 +101,27 @@ await act(t3, { type: 'g2', map: swapped }); await act(t1, { type: 'g2', map: co
 check((await act(t1, { type: 'g2', map: swapped })).ok, 'resubmit ignored');
 check((await view(t1)).me.submitted === true && (await view(t1)).submitted === 3, 'submission counted');
 await next(); v = await view(t1);
-check(v.phase === 'g2_reveal' && v.answer.length === 4 && v.me.result.pts === 55 && v.allCorrect === 2, 'first correct: 4×10 + 15 = 55');
-check((await view(t3)).me.result.pts === 20, 'submitted first but 2 wrong: 20, no bonus');
+check(v.phase === 'g2_reveal' && v.answer.length === 4 && v.me.result.pts === 115 && v.allCorrect === 2, 'first all-correct: 100 + 15 = 115');
+check((await view(t3)).me.result.pts === 50 && (await view(t2)).me.result.pts === 114, 'half right 50, no bonus even when first; next all-correct 114');
+v = await view(t1); check(v.recapTab === 'answer', 'recap starts with the right answers');
 check((await act(t2, { type: 'g2', map: correct })).ok === undefined, 'no submits after reveal');
-await adm(A, { cmd: 'recapTab', tab: 'wrong' }); check((await view(t5)).recapTab === 'wrong', 'recap tab synced');
+await next(); v = await view(t5); check(v.phase === 'g2_reveal' && v.recapTab === 'wrong' && v.answer[0].wrong.result, 'next shows what happens with the wrong style');
 await next(); v = await view(t1);
 const b = (vw, n) => vw.scoreboard.find(r => r.id === L4[n].id);
-check(b(v, 0).total === 55 && b(v, 1).total === 54 && b(v, 2).total === 20 && b(v, 0).rank === 1, 'scoreboard 55 / 54 / 20 ranked');
+check(b(v, 0).total === 115 && b(v, 1).total === 114 && b(v, 2).total === 50 && b(v, 0).rank === 1 && b(v, 0).nick, 'scoreboard 115 / 114 / 50 ranked with group');
 check(v.scoreboard.length === L4.length && !v.scoreboard.some(r => r.id === EQ.id), 'scoreboard only lists L4');
-check(v.me.score.total === 55, 'my score in header');
+check(v.me.score.total === 115, 'my score in header');
+await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 2, clear: true }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); v = await view(t1);
+const sc2 = content.scenarios[2], c2 = Object.fromEntries(Object.keys(sc2.commands).map(k => [k, v.cards.find(x => x.t === sc2.commands[k]).id]));
+const ids = Object.values(c2);
+await act(t1, { type: 'g2', map: { bull: c2.eagle, eagle: c2.rat, rat: c2.bull, bear: c2.bear } });
+await adm(A, { cmd: 'next' }); check((await view(t1)).me.result.pts === 0, 'one pair right scores 0');
+await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 2, clear: true }); await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 0 }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); v = await view(t1);
 await adm(A, { cmd: 'board', on: true }); check((await view(t5)).scoreboard, 'admin shows scoreboard to all'); await adm(A, { cmd: 'board', on: false });
 // countdown auto-advance
 await next(); await next(); v = await view(t1); check(v.phase === 'g2_countdown' && v.round === 1, 'next scenario countdown');
 await db.exec('reset role'); await db.exec(`update game.state set ends_at = now() - interval '1 second'`); await db.exec('set role anon');
-v = await view(t5); check(v.phase === 'g2_match' && v.cards.length === 4, 'countdown auto-opens match when due');
+v = await view(t5); check(v.phase === 'g2_match' && !v.cards, 'countdown auto-opens match when due');
 // game 3
 await adm(A, { cmd: 'goto', phase: 'g3_intro' }); await next(); v = await view(t1);
 const P = content.personas[0];
@@ -93,37 +129,46 @@ check(v.phase === 'g3_board' && v.g3.clues.length === 4 && v.g3.clues.every(x =>
 check(!JSON.stringify(v).includes(P.tag), 'hashtag not sent early');
 check((await act(t1, { type: 'g3', choice: P.id })).error, 'no answer before first sign');
 await next(); v = await view(t1); check(v.g3.clues[0] === P.clues[0] && v.g3.clues[1] === null, 'sign 1 opens, others hidden');
-await act(t2, { type: 'g3', choice: P.id }); await act(t1, { type: 'g3', choice: 'p2' });
-check((await act(t1, { type: 'g3', choice: P.id })).error, 'wrong guess locks until next sign');
-check((await view(t1)).me.g3.wrongThisSign === true, 'wrong state shown');
+const t4 = (await login(L4[3].id, PW.user)).token;
+await act(t1, { type: 'g3', choice: 'p2' });        // first to answer, but wrong: must not take the 15
+v = await view(t1);
+check(v.me.g3.choice === 'p2' && !('correct' in v.me.g3) && !('wrongThisSign' in v.me.g3) && !('correctCount' in v.g3) && !('persona' in v.g3), 'locked answer shows no right or wrong');
+check(v.g3.answered === 1, 'projector counts answered groups');
+check((await act(t1, { type: 'g3', choice: P.id })).locked, 'answer cannot be changed after sending');
+check((await view(t1)).me.g3.choice === 'p2', 'locked answer stays the same');
+await act(t2, { type: 'g3', choice: P.id });        // first correct on sign 1: 100 + 15
 check((await act(t5, { type: 'g3', choice: P.id })).error, 'L5 cannot answer game 3');
-await next(); check((await act(t1, { type: 'g3', choice: 'p2' })).error, 'same wrong choice refused');
-await act(t1, { type: 'g3', choice: P.id });
-await next(); await next(); await act(t3, { type: 'g3', choice: P.id });
+const mon = await rpc('mm_monitor', A);
+const mc = n => mon.coaches.find(x => x.name === L4[n].name);
+check(mc(0).g3.correct === false && mc(1).g3.correct === true && mc(2).g3 === null, 'monitor shows who is right, wrong and not answered');
+check(mon.groups.length === 10 && mon.joined >= 5, 'monitor shows group progress');
+await next(); await act(t4, { type: 'g3', choice: P.id });  // second correct on sign 2: 75 + 14
+await next(); await next(); await act(t3, { type: 'g3', choice: P.id }); // third correct on sign 4: 25 + 13
 await next(); v = await view(t1);
-check(v.phase === 'g3_reveal' && v.g3.persona.name === P.name && v.me.result.pts === 89, 'sign 2 second place: 75 + 14 = 89');
+check(v.phase === 'g3_reveal' && v.g3.persona.name === P.name && v.g3.correctCount === 3 && v.me.result.pts === 0, 'wrong first answer scores 0 at reveal');
+check((await view(t2)).me.result.pts === 115 && (await view(t4)).me.result.pts === 89 && (await view(t3)).me.result.pts === 38, 'bonus by speed among right answers: 115, 89, 38');
 await next(); v = await view(t1);
-check(b(v, 1).total === 54 + 115 && b(v, 0).total === 55 + 89 && b(v, 2).total === 20 + 38, 'game 3: 100+15, 75+14, 25+13 accumulates');
+const g2t = [115, 114, 50]; check(b(v, 1).g3 === 115 && b(v, 0).g3 === 0 && b(v, 2).g3 === 38, 'game 3 points accumulate');
+const exAll = await rpc('mm_export', A);
+fs.writeFileSync('/tmp/claude-503/export.json', JSON.stringify(exAll));
+check(exAll.g2.length >= 1 && exAll.g2.every(r => r.pairs && r.order >= 1 && r.title) && exAll.g3.length >= 1 && exAll.g3.every(r => r.persona && r.choice), 'export has game 2 and 3 detail');
+check(exAll.g3.some(r => !r.correct) && exAll.board.length === 10 && exAll.rows.some(r => r.counts && r.groupNo), 'export includes wrong answers, groups and counts');
 // settings
 await adm(A, { cmd: 'settings', settings: { signCount: '2', signPoints: [100, 50], wrongPenalty: 5 } }); await next(); v = await view(t1);
 check(v.g3.signCount === 2 && v.g3.signPoints[1] === 50, 'sign count editable, applies next round');
 await next(); await act(t1, { type: 'g3', choice: 'p1' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' });
 check(((await view(t1)).me.result || {}).pts === -5, 'wrong-answer penalty setting works');
-const exAll = await rpc('mm_export', A);
-fs.writeFileSync('/tmp/claude-503/export.json', JSON.stringify(exAll));
-check(exAll.g2.length >= 1 && exAll.g2.every(r => r.pairs && r.order >= 1 && r.title) && exAll.g3.length >= 1 && exAll.g3.every(r => r.persona), 'export has game 2 and 3 detail');
-check(exAll.g3.some(r => r.wrong > 0 && r.wrongNames) && exAll.board.length === 10 && exAll.rows.some(r => r.counts), 'export includes wrong guesses, board and answer counts');
+await adm(A, { cmd: 'settings', settings: { fullPoints: 200, halfPoints: 80 } }); check((await view(A)).admin.settings.fullPoints === 200, 'points editable'); await adm(A, { cmd: 'settings', settings: { fullPoints: 100, halfPoints: 50 } });
 // replay & export
 await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 0, clear: true }); await adm(A, { cmd: 'goto', phase: 'g3_board', round: 1, clear: true });
-await adm(A, { cmd: 'settings', settings: { wrongPenalty: 0 } });
 await adm(A, { cmd: 'goto', phase: 'g2_end' }); v = await view(t1);
-check(b(v, 0).total === 89, 'replaying a round clears only that round');
+check(b(v, 0).total === -5, 'replaying a round clears only that round');
 const ex = (await rpc('mm_export', A)).rows;
 check(ex.length === roster.length && ex.some(r => r.animal === 'rat'), 'export lists everyone with animal');
 check((await view(A)).admin.joined.length >= 5 && (await view(A)).admin.draftAssessment === false, 'admin sees joined list, no draft flag');
 await adm(A, { cmd: 'resetAll' }); v = await view(A);
 check(v.phase === 'idle' && v.admin.joined.length === 0 && (await view(t1)).me.g1 === null, 'reset clears the game');
 // last round transitions
-await adm(A, { cmd: 'goto', phase: 'g2_motion', round: content.scenarios.length - 1 }); for (let i = 0; i < 4; i++) await next();
+await adm(A, { cmd: 'goto', phase: 'g2_motion', round: content.scenarios.length - 1 }); for (let i = 0; i < 5; i++) await next();
 check((await view(A)).admin.nextLabel === 'สรุปเกมที่ 2', 'last scenario leads to summary'); await next(); check((await view(A)).phase === 'g2_end', 'game 2 end');
 console.log(`\nPASS ${ok} checks`); process.exit(0);
