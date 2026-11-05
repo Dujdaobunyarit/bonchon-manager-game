@@ -1,1 +1,1 @@
-{ "name":"manager-meeting-game","version":"2.0.0","private":true,"scripts":{"seed":"node tools/build-seed.js","test":"node test/rules.mjs"},"devDependencies":{"@electric-sql/pglite":"0.3.14","@supabase/supabase-js":"2.119.0"} }
+{"name":"manager-meeting-game","version":"2.0.0","private":true,"scripts":{"seed":"node tools/build-seed.js","test":"node test/rules.mjs"},"devDependencies":{"@electric-sql/pglite":"0.3.14","@expo-google-fonts/kanit":"^0.2.3","@napi-rs/canvas":"^0.1.65","@supabase/supabase-js":"2.119.0"}}

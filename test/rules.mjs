@@ -12,6 +12,7 @@ await db.exec(read('supabase/update_2.sql'));
 await db.exec(read('supabase/update_3.sql'));
 await db.exec(read('supabase/update_4.sql'));
 await db.exec(read('supabase/update_5.sql'));
+await db.exec(read('supabase/update_6.sql'));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -86,7 +87,11 @@ check(await sheet(17, 'DBBBBBDCCCCC') === 'eagle', 'tie B5 C5: no match → B be
 const tp = await tk(10); check((await act(tp, { type: 'g1promise', gap: 'ใจร้อน', next: 'พูดสุภาพ' })).ok && (await view(tp)).me.promise.gap === 'ใจร้อน', 'GEL Promise saved');
 check((await act(t1, { type: 'g1promise', gap: 'x', next: 'y' })).error, 'promise needs a result first');
 // game 2
-await next(); await next(); let gv = await view(t5);
+await next(); await next(); let lv = await view(t5);
+check(lv.phase === 'learn' && lv.round === 0 && (await view(A)).admin.nextLabel.includes('กระทิง'), 'after game 1 the animals page starts closed');
+await next(); lv = await view(t5); check(lv.round === 1 && (await view(A)).admin.nextLabel.includes('อินทรี'), 'admin opens one animal at a time');
+await next(); await next(); await next(); lv = await view(t5); check(lv.phase === 'learn' && lv.round === 4 && (await view(A)).admin.nextLabel.includes('กลุ่ม'), 'all 4 open, next goes to groups');
+await next(); let gv = await view(t5);
 check(gv.phase === 'groups' && gv.me.group && gv.groups.length === 10 && gv.me.members > 0, 'after game 1 everyone sees their group');
 await next(); await next(); await next();
 let v = await view(t1);

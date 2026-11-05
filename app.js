@@ -5,6 +5,14 @@ const A = {
   rat:{th:'หนู',en:'RAT',dir:'S',strength:'อบอุ่น เข้าใจคน ทีมรัก',gap:'ไม่กล้าปฏิเสธ เลี่ยงความขัดแย้ง',borrow:'กระทิง',ideal:'ใส่ใจ แต่กล้าเตือนน้องทันทีเมื่อผิดมาตรฐาน และกล้ารับข้อร้องเรียนด้วย BLAST',talk:'อบอุ่น ให้ประโยคสำเร็จรูป ส่งต่อได้',c:'#7c7c88'},
   bear:{th:'หมี',en:'BEAR',dir:'W',strength:'ละเอียด แม่นยำ รักษามาตรฐาน',gap:'ช้า ไม่ยืดหยุ่นตอน Peak',borrow:'อินทรี + กระทิง',ideal:'ยึด SOP แต่จัดลำดับความสำคัญได้ตอน Peak (SEE → PRIORITIZE → ACT)',talk:'ชัดเจน เป็นขั้นตอน บอกลำดับสำคัญ',c:'#a8672a'},
 };
+const LEARN = [
+  {a:'bull',dir:'N',th:'กระทิง',en:'BULL',tips:[['⚡','สั้น ตรง'],['🎯','ให้อำนาจ'],['🚧','และบอกสิ่งที่ห้ามข้าม']]},
+  {a:'eagle',dir:'E',th:'อินทรี',en:'EAGLE',tips:[['💡','บอกเหตุผลก่อน'],['💬','ถามความเห็น'],['📅','และกำหนด deadline กับนิยามงานเสร็จ']]},
+  {a:'rat',dir:'S',th:'หนู',en:'RAT',tips:[['❤️','อบอุ่น'],['🗨️','ให้ประโยคสำเร็จรูป'],['👍','และให้สิทธิ์ส่งต่อเรื่องให้หัวหน้า']]},
+  {a:'bear',dir:'W',th:'หมี',en:'BEAR',tips:[['⚙️','ชัดเจน'],['📋','เป็นขั้นตอน'],['🔍','และบอกลำดับความสำคัญ']]},
+];
+const learnCard=(l,i,open,fresh)=>`<div class="lcard ${open?'open':''} ${fresh?'fresh':''}" style="--d:${i*.4}s"><div class="flipper"><div class="face fback"><b>${l.dir}</b><span>?</span><small>${l.en}</small></div><div class="face front"><i class="dirb">${l.dir}</i><div class="stagef"><span class="glow"></span><img class="a-3d" src="img/${l.a}.png" alt="${l.th}"><span class="shadow"></span></div><h3>${l.th}<small>${l.en}</small></h3><ul>${l.tips.map((t,k)=>`<li style="--k:${k}"><em>${t[0]}</em>${t[1]}</li>`).join('')}</ul></div></div></div>`;
+let learnSeen=-1;
 const AK = ['bull','eagle','rat','bear'];
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -112,10 +120,10 @@ function keyPlayer(){
   return [V.phase,V.round,V.board,V.recapTab,m.g1||'',m.submitted?1:0,x.signs||0,g.choice||'',m.group?m.group.no:''].join('|');
 }
 function renderPlayer(){
-  if(V.phase==='idle'||V.phase==='lobby'){store.del('q:'+V.me.id);LG.round=-1;seenSigns=-1}
-  const inForest=V.phase==='g1'||V.phase==='g1_end';
+  if(V.phase==='idle'||V.phase==='lobby'){store.del('q:'+V.me.id);LG.round=-1;seenSigns=-1;learnSeen=-1}
+  const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn';
   document.body.className=inForest?'forest':V.phase==='g3_intro'?'g3cover':['g3_board','g3_reveal','g3_scores'].includes(V.phase)?'store':'';
-  MMAudio.scene(inForest?'forest':'none');
+  MMAudio.scene(V.phase==='g1'||V.phase==='g1_end'?'forest':'none');
   const m=V.me,key=keyPlayer();
   if(!$('.shell'))app.innerHTML=`<div class="shell"><div class="top" id="top"></div><div class="main" id="main"></div></div><div id="ov"></div>`;
   $('#top').innerHTML=`${m.g1?`<img src="img/${m.g1}.png" alt="${A[m.g1].th}">`:''}<div class="nm">${esc(m.name)}<small>${m.group?esc(groupLabel(m.group))+' · ':''}${esc(m.store)}</small></div>${m.score?`<span class="pts">${m.score.total} pt</span>`:''}${inForest?`<button class="out snd" id="snd" aria-label="เปิดปิดเสียงป่า">${MMAudio.musicOn?'🔊':'🔇'}</button>`:''}<button class="out" id="out">ออก</button>`;
@@ -149,6 +157,10 @@ const PV={
   lobby(m){hello(m,`พร้อมแล้ว ${esc(V.me.name)}!`,'อีกสักครู่เกมจะเริ่ม ดูจอหลักไว้นะ')},
   g1(m){V.me.g1?showResult(m,V.me.g1):quiz(m)},
   g1_end(m){V.me.g1?showResult(m,V.me.g1):quiz(m)},
+  learn(m){
+    const n=V.round,fresh=learnSeen>=0&&n>learnSeen?n-1:-1;learnSeen=n;
+    m.innerHTML=`<div class="center" style="gap:8px"><span class="tag">ก่อนเล่นเกมที่ 2</span><h2 class="h brush">สั่งงานให้ตรงกับ<em>ประเภท</em></h2><p class="sub">${n?'ดูจอหลักแล้วจำให้แม่นนะ':'คำสั่งเดียวกัน แต่แต่ละคนอาจต้องการวิธีสื่อสารที่แตกต่างกัน'}</p></div><div class="lgrid-p">${LEARN.map((l,i)=>learnCard(l,i,i<n,i===fresh)).join('')}</div>${n>=4?'<p class="ltip">💡 สังเกตจากคำพูด น้ำเสียง และภาษากาย ให้ตรงกับสไตล์ของพนักงาน</p>':''}`;
+  },
   groups(m){
     const g=V.me.group;
     if(!g){m.innerHTML=`<div class="center"><h2 class="h brush">ยังไม่มีกลุ่มของคุณ</h2><p class="sub">แจ้งทีมงานเพื่อจัดกลุ่มให้นะ</p></div>`;return}
@@ -298,11 +310,11 @@ function keyHost(){const g=V.g3||{};return [V.phase,V.round,V.board,V.recapTab,g
 function renderHost(){
   document.body.className='host';
   if(!$('#stage')){app.innerHTML=`<div id="stage"><div class="brand">TEAM <i>BONCHON</i></div><div id="scr"></div><div id="ovl"></div><div class="bar" id="bar"></div><div id="pn"></div></div>`;fit();}
-  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['idle','lobby','groups','g2_intro','g3_intro'].includes(V.phase));MMAudio.scene(inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');
+  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['idle','lobby','groups','g2_intro','g3_intro'].includes(V.phase));MMAudio.scene(V.phase==='learn'?'forest':inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');
   drawBar();
   patchHost();
   const key=keyHost();
-  if(key!==lastKey){const old=lastKey;lastKey=key;if(old)MMAudio.transition();if(V.phase!=='g2_motion')MMAudio.duck(false);
+  if(key!==lastKey){const old=lastKey;lastKey=key;if(old&&V.phase!=='learn')MMAudio.transition();if(V.phase!=='g2_motion')MMAudio.duck(false);
     (HV[V.phase]||HV.idle)($('#scr'),old);patchHost();
   }
   setOnce($('#ovl'),V.board&&V.scoreboard?`<div class="hboard-ov"><h2 class="t2 brush">สกอร์<em>บอร์ด</em></h2>${hBoard()}</div>`:'');
@@ -351,8 +363,13 @@ const HV={
   },
   g1(s){s.innerHTML=`<div class="scr"><div class="fhead"><span class="tag" style="font-size:30px">เกมที่ 1</span><h1 class="t2 brush">เราคือสัตว์<em>ประเภทไหน?</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800;font-size:64px">0</span> / ${V.totalUsers} คน ทำเสร็จแล้ว</p></div>${dist()}</div>`},
   g1_end(s){s.innerHTML=`<div class="scr"><div class="fhead"><h1 class="t2 brush">ทีมเราเป็น<em>แบบนี้!</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800">0</span> คน ได้รับสติ๊กเกอร์ของตัวเอง</p></div>${dist()}</div>`;fanfare();confetti(90)},
+  learn(s){
+    const n=V.round,fresh=learnSeen>=0&&n>learnSeen?n-1:-1;learnSeen=n;
+    s.innerHTML=`<div class="scr learn"><div class="lhead"><span class="ltitle brush">สั่งงานให้ตรงกับ<em>ประเภท</em> <b>4</b></span><span class="lsub">เข้าใจความแตกต่าง สื่อสารให้ตรงจุด เพื่อให้งานสำเร็จร่วมกัน</span></div><div class="lbody"><div class="lgoal"><h3>เป้าหมาย</h3><p>ฝึกผู้จัดการให้ปรับวิธีสั่งงาน ให้เหมาะกับลักษณะการทำงานของพนักงานแต่ละประเภท</p><div class="lbub">คำสั่งเดียวกัน แต่แต่ละคนอาจต้องการ<b>วิธีสื่อสารที่แตกต่างกัน</b></div></div><div class="lgrid">${LEARN.map((l,i)=>learnCard(l,i,i<n,i===fresh)).join('')}</div></div><div class="ltipbar ${n>=4?'on':''}">💡 <b>เคล็ดลับ</b> สังเกตจากการใช้คำพูด น้ำเสียง และภาษากาย ให้ตรงกับสไตล์ของพนักงาน</div></div>`;
+    if(fresh>=0){MMAudio.open();setTimeout(()=>MMAudio.animal(LEARN[fresh].a),350);if(fresh===3)setTimeout(()=>confetti(90),900)}
+  },
   groups(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">แบ่ง<em>กลุ่ม</em> ไปรวมตัวกับ AC ของคุณ</h1><div class="hgroups">${(V.groups||[]).map(g=>`<div class="hgroup"><b>${g.no}</b><span>AC ${esc(g.nick)}</span><small>${g.members} คน</small></div>`).join('')}</div></div>`},
-  g2_intro(s){introHost(s,'เกมที่ 2','สั่งงานให้<em>ตรงประเภท</em>',['AC ของแต่ละกลุ่มจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว','ถูกครบ <b>100 pt</b> ถูกครึ่งเดียว <b>50 pt</b>','กลุ่มแรกที่ถูกครบได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น','คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า',`ทั้งหมด <b>${V.g2N} สถานการณ์</b> ลูกทีมร่วมลุ้นที่จอหลักของ AC`])},
+  g2_intro(s){introHost(s,'เกมที่ 2','สั่งงานให้<em>ตรงประเภท</em>',['แต่ละกลุ่มจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว','ถูกครบ <b>100 pt</b> ถูกครึ่งเดียว <b>50 pt</b>','กลุ่มแรกที่ถูกครบได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น','คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า',`ทั้งหมด <b>${V.g2N} สถานการณ์</b> ลูกทีมร่วมลุ้นที่จอหลักของ AC`])},
   g2_motion(s){
     const n=V.scenario.n;
     s.innerHTML=`<div class="scr c"><span class="tag" style="font-size:40px">สถานการณ์ที่ ${n}/${V.g2N}</span><h1 class="t1 brush" style="margin:22px 0;max-width:1650px">${esc(V.scenario.title)}</h1><p class="t3" style="max-width:1400px;font-size:48px">${esc(V.scenario.situation)}</p><p id="noMotion" style="color:var(--mute);margin-top:26px;font-size:24px"></p></div>`;
@@ -424,7 +441,7 @@ function openPanel(){
   </div><button class="btn" id="sSave" style="margin-top:12px;min-height:44px">บันทึกคะแนน</button>
   <p style="color:var(--mute);font-size:17px;margin-top:6px">จำนวนป้ายมีผลกับคนที่ยังไม่เริ่มเล่น สมชายมีคำใบ้ 4 ข้อจึงเปิดได้สูงสุด 4 ป้าย</p>
   <h3>ข้ามไปหน้าอื่น</h3><div class="jump">
-    <select id="jg">${[['lobby','Lobby'],['g1','เกม 1'],['g1_end','สรุปเกม 1'],['groups','แบ่งกลุ่ม'],['g2_intro','เกม 2: กติกา'],['g2_end','สรุปเกม 2'],['g3_intro','เกม 3: กติกา'],['final','ผลรวมสุดท้าย']].map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><button class="btn k" id="jgo">ไป</button>
+    <select id="jg">${[['lobby','Lobby'],['g1','เกม 1'],['g1_end','สรุปเกม 1'],['learn','อธิบายสัตว์ 4 ประเภท'],['groups','แบ่งกลุ่ม'],['g2_intro','เกม 2: กติกา'],['g2_end','สรุปเกม 2'],['g3_intro','เกม 3: กติกา'],['final','ผลรวมสุดท้าย']].map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><button class="btn k" id="jgo">ไป</button>
     <select id="js">${a.scenarios.map((x,i)=>`<option value="${i}">สถานการณ์ ${x.n}</option>`).join('')}</select><button class="btn k" id="jso">เล่นข้อนี้ใหม่</button>
     <select id="jp">${a.personas.map((x,i)=>`<option value="${i}">${esc(x.name)}</option>`).join('')}</select><button class="btn k" id="jpo">เล่นคนนี้ใหม่</button>
   </div>

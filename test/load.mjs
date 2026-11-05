@@ -49,6 +49,8 @@ const Q = (await rpc('mm_assessment', { p_token: A })).questions; const ans = Q.
 await Promise.all(users.map(async x => { await sleep(Math.random() * 45000); await rpc('mm_assessment', { p_token: x.t }); const r = await rpc('mm_act', { p_token: x.t, p_body: { type: 'g1', answers: Q.map((_, i) => Math.floor(Math.random() * 4)) } }); if (!r.animal) stats.errors.g1 = (stats.errors.g1 || 0) + 1; await rpc('mm_view', { p_token: x.t }); }));
 line('game 1 submit', stats.rpc.mm_act);
 await step('end game 1', () => adm({ cmd: 'next' }));
+await step('animals page', () => adm({ cmd: 'next' }));
+for (let i = 0; i < 4; i++) await step('open animal ' + (i + 1), () => adm({ cmd: 'next' }));
 await step('groups', () => adm({ cmd: 'next' }));
 await step('game 2 intro', () => adm({ cmd: 'next' }));
 await step('motion', () => adm({ cmd: 'next' }));
