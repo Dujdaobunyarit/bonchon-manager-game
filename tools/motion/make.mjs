@@ -1,6 +1,7 @@
 // Renders game 2 scenario motions. node tools/motion/make.mjs [1,2,3] [--stills]
 import fs from 'fs';
-import { R, W, H, FPS, SR, RED, INK, GOLD, cl, prog, eo, eio, back, lerp, loadAll, sprite, bob, seated, chairBack, rr, table, plate, glass, sauce, pad, clock, bubble, emote, burst, label, wrap, bgDining, bgCounter, bgStore, Mix, SFX, bgm, voice, encoder, createCanvas } from './engine.mjs';
+import { R, W, H, FPS, SR, RED, INK, GOLD, cl, prog, eo, eio, back, lerp, loadAll, sprite, bob, seated, chairBack, rr, table, plate, glass, sauce, pad, clock, bubble, emote, burst, label, wrap, bgDining, bgCounter, bgStore, Mix, SFX, bgm, loadVoice, splitVoice, setCustomerState, encoder, createCanvas } from './engine.mjs';
+import { COMMON, clipLines } from './lines.mjs';
 import { SCENES } from './scenes.mjs';
 
 const OUT = R + 'motion-output'; fs.mkdirSync(OUT, { recursive: true });
@@ -46,9 +47,9 @@ function quote(sc, t, d) {
   c.fillStyle = '#fff'; rr(c, x - w / 2, top, w, h, 36); c.fill();
   c.beginPath(); c.moveTo(x - w / 2 + 90, top + h - 3); c.lineTo(x - w / 2 - 10, top + h + 74); c.lineTo(x - w / 2 + 210, top + h - 3); c.fill();
   c.fillStyle = '#857b74'; c.font = '30px KM'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('เสียงจากลูกค้าจริง', x - w / 2 + 62, top + 54);
-  const shown = Math.floor(prog(t, .35, d * .62) * sc.quote.length); let left = shown;
+  const shown = prog(t, .25, Math.max(.5, d - 1.1)) * sc.quote.length; let used = 0;
   c.fillStyle = INK; c.font = '54px KB';
-  ls.forEach((l, i) => { const take = Math.min(left, l.length + 1); left -= take; c.fillText(take >= l.length ? l : l.slice(0, take), x - w / 2 + 62, top + 112 + i * 78); });
+  ls.forEach((l, i) => { let out = ''; for (const { segment } of WORDS.segment(l)) { if (used + segment.length * .5 > shown) break; out += segment; used += segment.length; } if (out === l) used += 1; c.fillText(out, x - w / 2 + 62, top + 112 + i * 78); });
   c.restore();
 }
 function stamp(sc, t, d) {
@@ -56,31 +57,37 @@ function stamp(sc, t, d) {
   c.fillStyle = '#000000b8'; c.fillRect(0, 0, W, H);
   const k = prog(t, .05, .24), s = lerp(2.4, 1, eo(k));
   c.save(); c.globalAlpha = k; c.translate(W / 2, 450); c.rotate(-.05); c.scale(s, s);
-  c.strokeStyle = RED; c.lineWidth = 12; rr(c, -660, -112, 1320, 224, 26); c.stroke(); c.fillStyle = '#fff'; c.font = '84px KB'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('เกิดขึ้นจริงเดือนที่แล้ว', 0, 2); c.restore();
+  c.strokeStyle = RED; c.lineWidth = 12; rr(c, -660, -112, 1320, 224, 26); c.stroke(); c.fillStyle = '#fff'; c.font = '84px KB'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('เรื่องนี้เกิดขึ้นจริง เดือนที่แล้ว', 0, 2); c.restore();
 }
 function question(sc, t, d) {
   c.fillStyle = '#f7f1ea'; c.fillRect(0, 0, W, H);
   c.fillStyle = RED; c.beginPath(); c.moveTo(0, 0); c.lineTo(W, 0); c.lineTo(W, 170); c.lineTo(0, 240); c.fill();
-  c.fillStyle = '#fff'; c.font = '66px KB'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('ถ้าน้องเป็นแบบไหน เราจะสั่งงานอย่างไร?', W / 2, 106);
+  c.fillStyle = '#fff'; c.font = '66px KB'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('ถ้าน้องที่ต้องไปจัดการเป็น...', W / 2, 106);
   ANIM.forEach(([a, th], i) => {
-    const k = back(prog(t, .3 + i * .55, .45)), x = 280 + i * 453, y = 800;
+    const k = back(prog(t, ASK[i], .4)), x = 280 + i * 453, y = 800;
     if (k <= 0) return; c.save(); c.translate(x, y); c.scale(k, k);
     sprite(c, a, 0, 0 + Math.sin(t * 3 + i) * 9, 430, { rot: Math.sin(t * 2.2 + i) * .03 }); c.restore();
     c.save(); c.globalAlpha = cl(k); label(c, th, x, 860, 50, '#fff', i % 2 ? INK : RED); c.restore();
   });
 }
-const quietSub = (s) => s;
+const WORDS = new Intl.Segmenter('th', { granularity: 'word' });
+const [vStamp, vAsk] = splitVoice(loadVoice('common'), COMMON);
+const level = (v, t) => { const i = Math.floor(t * SR), n = 900; if (i < 0 || i >= v.length) return 0; let e = 0; for (let j = i; j < Math.min(v.length, i + n); j++) e += v[j] ** 2; return Math.min(1, Math.sqrt(e / n) * 7); };
 
+const ASK = [1.95, 2.6, 3, 3.35];
 async function render(sc) {
+  const lines = clipLines(sc), raw = splitVoice(loadVoice('s' + sc.n), sc.n <= 2 ? lines : lines.slice(0, -1), sc.n === 9 ? [5.92, 9.82, 10.68] : undefined);
+  const parts = raw.slice(0, sc.beats.length + 1), vQuote = loadVoice('q' + sc.n), trim = v => { let a = 0, b = v.length - 1; while (a < b && Math.abs(v[a]) < .01) a++; while (b > a && Math.abs(v[b]) < .01) b--; return v.slice(Math.max(0, a - 800), Math.min(v.length, b + 3000)); };
   const beats = [
-    { kind: 'title', say: `สถานการณ์ที่ ${sc.n}. ${sc.title}`, sub: '', pad: .7, sfx: [[0, 'whoosh'], [.15, 'stamp'], [.45, 'pop']] },
-    ...sc.beats.map(b => ({ kind: 'scene', pad: .55, ...b })),
-    { kind: 'quote', say: sc.quote, sub: '', pad: .7, rate: 158, sfx: [[0, 'whoosh'], [.08, 'pop']] },
-    { kind: 'stamp', say: 'เรื่องนี้ เกิดขึ้นจริง เดือนที่แล้ว', sub: '', pad: .55, sfx: [[.2, 'stamp']] },
-    { kind: 'q', say: 'ถ้าน้องที่ต้องไปจัดการเป็น กระทิง. อินทรี. หนู. หมี. เราจะสั่งงานอย่างไร?', sub: 'ถ้าน้องที่ต้องไปจัดการเป็น กระทิง / อินทรี / หนู / หมี เราจะสั่งงานอย่างไร?', pad: 1, sfx: [[0, 'whoosh'], [.3, 'pop'], [.85, 'pop'], [1.4, 'pop'], [1.95, 'pop'], [2.5, 'sparkle']] },
+    { kind: 'title', v: parts[0], sub: '', pad: .55, sfx: [[0, 'whoosh'], [.15, 'stamp'], [.45, 'pop']] },
+    ...sc.beats.map((b, i) => ({ kind: 'scene', pad: .5, ...b, v: parts[i + 1] })),
+    { kind: 'quote', v: trim(vQuote), sub: '', pad: .6, mood: 'angry', sfx: [[0, 'whoosh'], [.08, 'pop']] },
+    { kind: 'stamp', v: vStamp, sub: '', pad: .5, mood: 'annoyed', sfx: [[.2, 'stamp']] },
+    { kind: 'q', v: vAsk, sub: 'เราจะสั่งงานอย่างไร?', pad: 1, sfx: [[0, 'whoosh'], ...ASK.map(t => [t, 'pop'])] },
   ];
+  console.log('s' + sc.n, beats.map(b => (b.v.length / SR).toFixed(1)).join(' '), '| chars', lines.map(l => l.length).join(' '));
   let T = 0; const lead = .22;
-  for (const b of beats) { b.v = voice(b.say, b.rate || 172); b.t0 = T; b.d = Math.max(b.min || 0, lead + b.v.length / SR + b.pad); T += b.d; }
+  for (const b of beats) { b.t0 = T; b.d = Math.max(b.min || 0, lead + b.v.length / SR + b.pad); T += b.d; }
   const mix = new Mix(T);
   for (const b of beats) {
     mix.add(b.t0 + lead, b.v, .95, 0, true);
@@ -97,6 +104,8 @@ async function render(sc) {
     const t = f / FPS, b = beats.find(x => t < x.t0 + x.d) || beats.at(-1), lt = t - b.t0;
     if (STILLS && !stills.has(f)) continue;
     c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1;
+    const talk = b.kind === 'quote' ? level(b.v, lt - lead) : (b.talk && lt >= b.talk[0] && lt <= b.talk[1] ? .35 + .55 * Math.abs(Math.sin(lt * 15)) : 0);
+    setCustomerState({ t: lt, tl: b.mood, talk, raise: b.raise });
     if (b.kind === 'title') titleCard(sc, lt, b.d);
     if (b.kind === 'scene') { const end = drawScene(b.bg || sc.bg, lt, b.zoom ?? .012, b.focus); b.draw(fx, lt, b.d); end(); if (b.over) b.over(fx, lt, b.d); subtitle(b.sub ?? b.say, eo(prog(lt, .05, .25))); }
     if (b.kind === 'quote') quote(sc, lt, b.d);

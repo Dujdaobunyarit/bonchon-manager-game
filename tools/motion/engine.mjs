@@ -2,7 +2,8 @@
 import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
 import { execFileSync, spawn } from 'child_process';
 import fs from 'fs';
-import path from 'path';
+import { LOOKS, drawCustomer, setCustomerState } from './customer.mjs';
+export { setCustomerState };
 
 export const R = decodeURIComponent(new URL('../..', import.meta.url).pathname);
 export const W = 1920, H = 1080, FPS = 30, SR = 44100;
@@ -27,6 +28,7 @@ export async function loadAll() {
   for (const a of ['bull', 'eagle', 'rat', 'bear']) IMG[a] = await loadImage(R + 'img/' + a + '.png');
 }
 export function sprite(c, name, x, y, h, o = {}) {
+  if (LOOKS[name]) return drawCustomer(c, name, x, y, h, o);
   const m = IMG[name]; const s = h / m.height, w = m.width * s;
   c.save(); c.globalAlpha *= o.a ?? 1; c.translate(x, y + (o.dy || 0));
   if (o.rot) c.rotate(o.rot);
@@ -36,7 +38,7 @@ export function sprite(c, name, x, y, h, o = {}) {
 export const bob = (t, sp = 2, a = 5, ph = 0) => Math.sin(t * sp * 2 + ph) * a;
 export function seated(c, name, x, tableY, h, t, o = {}) {
   c.save(); c.beginPath(); c.rect(x - 400, 0, 800, tableY + 6); c.clip();
-  sprite(c, name, x, tableY + h * .55, h, { ...o, dy: bob(t, 1, 3) }); c.restore();
+  sprite(c, name, x, tableY + h * .55, h, { ...o, seated: true, dy: bob(t, 1, 3) }); c.restore();
 }
 export function chairBack(c, x, y) {
   c.fillStyle = '#c41116'; rr(c, x - 78, y - 188, 156, 200, 26); c.fill();
@@ -205,14 +207,38 @@ export function bgm(n, dur) { // original light loop, one key per scenario
   for (let i = 0; i < out.length; i++) out[i] = o[i % len] * .5 + amb[i % amb.length];
   return out;
 }
-const TMP = '/tmp/claude-503/mv/voice'; fs.mkdirSync(TMP, { recursive: true });
-export function voice(text, rate = 172) {
-  const f = path.join(TMP, Buffer.from(text + rate).toString('base64url').slice(-60));
-  if (!fs.existsSync(f + '.f32')) {
-    execFileSync('say', ['-v', 'Kanya', '-r', String(rate), '-o', f + '.aiff', text]);
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', f + '.aiff', '-af', 'highpass=f=90,acompressor=threshold=0.2:ratio=2.5,loudnorm=I=-15:TP=-1.5,silenceremove=start_periods=1:start_threshold=-45dB', '-f', 'f32le', '-ac', '1', '-ar', String(SR), f + '.f32']);
-  }
-  const b = fs.readFileSync(f + '.f32'); return new Float32Array(b.buffer, b.byteOffset, b.length / 4);
+// Gemini speech: private/motion/voice/<name>.wav, loudness matched, then cut at its longest pauses.
+const TMP = '/tmp/claude-503/mv/gem'; fs.mkdirSync(TMP, { recursive: true });
+export function loadVoice(name) {
+  const src = R + 'private/motion/voice/' + name + '.wav', f = TMP + '/' + name + '.f32';
+  if (!fs.existsSync(f) || fs.statSync(f).mtimeMs < fs.statSync(src).mtimeMs) execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', src, '-af', 'highpass=f=80,loudnorm=I=-15:TP=-1.5:LRA=9', '-f', 'f32le', '-ac', '1', '-ar', String(SR), f]);
+  const b = fs.readFileSync(f); return new Float32Array(b.buffer, b.byteOffset, b.length / 4);
+}
+export function splitVoice(buf, lines, force) { // returns one buffer per line
+  const win = Math.round(SR * .02), n = Math.floor(buf.length / win), rms = new Float32Array(n);
+  for (let i = 0; i < n; i++) { let e = 0; for (let j = 0; j < win; j++) e += buf[i * win + j] ** 2; rms[i] = Math.sqrt(e / win); }
+  const th = .012, sp = []; let a = -1;
+  for (let i = 0; i < n; i++) { const on = rms[i] > th; if (on && a < 0) a = i; if (!on && a >= 0) { sp.push([a, i]); a = -1; } } if (a >= 0) sp.push([a, n]);
+  // choose the pauses whose parts best match each line's length, favouring long pauses
+  const gaps = []; for (let i = 1; i < sp.length; i++) gaps.push({ i, len: (sp[i][0] - sp[i - 1][1]) * .02 });
+  const need = lines.length - 1, cand = gaps.filter(g => g.len >= .1).sort((x, y) => x.i - y.i);
+  if (cand.length < need) throw new Error('not enough pauses');
+  const chars = lines.map(l => l.replace(/\s/g, '').length), sum = chars.reduce((x, y) => x + y), total = (sp.at(-1)[1] - sp[0][0]) * .02, spoken = total - cand.reduce((x, g) => x + g.len, 0) * .6;
+  let best = null, bestScore = Infinity;
+  const walk = (from, picked) => {
+    if (picked.length === need) {
+      let score = 0, st0 = 0; [...picked.map(g => g.i), sp.length].forEach((e, k) => { const dur = (sp[e - 1][1] - sp[st0][0]) * .02, want = spoken * chars[k] / sum; score += ((dur - want) / Math.max(.35, want)) ** 2; st0 = e; });
+      score -= picked.reduce((x, g) => x + Math.min(1, g.len), 0) * .6;
+      if (score < bestScore) { bestScore = score; best = picked; } return;
+    }
+    for (let i = from; i < cand.length; i++) walk(i + 1, [...picked, cand[i]]);
+  };
+  walk(0, []);
+  if (force) best = force.map(sec => gaps.reduce((x, g) => Math.abs(sp[g.i][0] * .02 - sec) < Math.abs(sp[x.i][0] * .02 - sec) ? g : x));
+  const cut = best.map(g => g.i).sort((x, y) => x - y);
+  const out = []; let st = 0;
+  [...cut, sp.length].forEach(e => { const b0 = Math.max(0, sp[st][0] * win - Math.round(SR * .04)), b1 = Math.min(buf.length, sp[e - 1][1] * win + Math.round(SR * .09)), part = buf.slice(b0, b1); for (let i = 0; i < 400 && i < part.length; i++) { part[i] *= i / 400; part[part.length - 1 - i] *= i / 400; } out.push(part); st = e; });
+  return out;
 }
 export function encoder(file, audio) {
   const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', String(FPS), '-i', '-', '-f', 'f32le', '-ar', String(SR), '-ac', '2', '-i', audio, '-c:v', 'libx264', '-preset', 'medium', '-crf', '21', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', '-shortest', file], { stdio: ['pipe', 'inherit', 'inherit'] });
