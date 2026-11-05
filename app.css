@@ -351,3 +351,5 @@ body.store .center{min-height:0}
 
 .st-pic .spin{display:none}
 .st-pic .pic{height:600px;background:#fff;border-radius:26px;padding:14px;border:6px solid #2f8dff;box-shadow:0 0 30px #1f7bff,0 0 70px #1f7bff66;animation:pop .6s both,floaty 4s .6s ease-in-out infinite}
+
+.resetbox{inset:230px 420px auto;line-height:1.5;border-top:10px solid var(--red)}.resetbox .jump{margin-top:18px;justify-content:flex-end}.resetbox .btn{min-height:56px;font-size:22px;padding:0 22px;box-shadow:none}

@@ -14,7 +14,7 @@
 
 ติดตั้งแล้วในโปรเจกต์ `bonchon-manager-game` ค่าใน `config.js` เป็นค่าที่อยู่ในหน้าเว็บได้ ห้ามใส่ service_role key
 
-ถ้าติดตั้งใหม่ ให้เปิด SQL Editor แล้วรัน `supabase/schema.sql`, `supabase/storage.sql`, `private/seed.sql`, `supabase/update_2.sql`, `supabase/update_3.sql` และ `supabase/update_4.sql` ตามลำดับ จากนั้น deploy `supabase/functions/motion-upload` แล้วรัน `node tools/load-roster.mjs`
+ถ้าติดตั้งใหม่ ให้เปิด SQL Editor แล้วรัน `supabase/schema.sql`, `supabase/storage.sql`, `private/seed.sql`, `supabase/update_2.sql`, `supabase/update_3.sql`, `supabase/update_4.sql` และ `supabase/update_5.sql` ตามลำดับ จากนั้น deploy `supabase/functions/motion-upload` แล้วรัน `node tools/load-roster.mjs`
 
 ## ไฟล์ที่ห้ามขึ้น GitHub หรือโฮสติ้ง
 
@@ -41,6 +41,10 @@
 - จัดกลุ่มอัตโนมัติจากรหัสร้านในชื่อสาขา ถ้าไม่พบใช้ Manager ID หรือใส่เลขกลุ่มเองในคอลัมน์ "กลุ่ม"
 - Motion: ไฟล์ .mp4 ไม่เกิน 50 MB ต่อสถานการณ์
 - Export: ไฟล์ Excel แยกแผ่นตามเกม ควรดาวน์โหลดก่อนรีเซ็ตเกมทุกครั้ง
+
+## เริ่มเล่นใหม่
+
+กด 🔄 เริ่มใหม่ บนจอแอดมิน ระบบจะลบผลเกมและคะแนนทั้งหมด แล้วกลับไปหน้า QR โดยรายชื่อ กลุ่ม วิดีโอ และการตั้งค่ายังอยู่ ควรดาวน์โหลดผลก่อนกดยืนยัน
 
 ## ปุ่มลัดบนจอแอดมิน
 

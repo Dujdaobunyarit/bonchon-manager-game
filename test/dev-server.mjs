@@ -4,7 +4,7 @@ import http from 'http'; import fs from 'fs'; import path from 'path';
 const R = decodeURIComponent(new URL('..', import.meta.url).pathname), read = f => fs.readFileSync(R + f, 'utf8');
 const db = new PGlite();
 await db.exec(`create role anon nologin; create role authenticated nologin;`);
-await db.exec(read('supabase/schema.sql')); await db.exec(read('private/seed.sql')); await db.exec(read('supabase/update_2.sql')); await db.exec(read('supabase/update_3.sql')); await db.exec(read('supabase/update_4.sql')); await db.exec('set role anon');
+await db.exec(read('supabase/schema.sql')); await db.exec(read('private/seed.sql')); await db.exec(read('supabase/update_2.sql')); await db.exec(read('supabase/update_3.sql')); await db.exec(read('supabase/update_4.sql')); await db.exec(read('supabase/update_5.sql')); await db.exec('set role anon');
 { const q = (f, ...x) => db.query(`select public.${f}(${x.map((_, i) => `$${i + 1}`).join(',')}) v`, x).then(r => r.rows[0].v), js = f => JSON.parse(read(f)), pw = js('private/passwords.json');
   const A = (await q('mm_login', pw.adminUser, pw.admin)).token; await q('mm_set_groups', A, js('data/groups-seed.json'));
   const mg = js('data/managers.json'), row = u => ({ id: u.id, name: u.name, store: u.store, code: u.store.split('-')[0].trim(), managerId: mg[u.id] || '' }), R0 = js('data/roster.json');

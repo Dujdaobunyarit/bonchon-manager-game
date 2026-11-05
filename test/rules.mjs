@@ -11,6 +11,7 @@ await db.exec(read('private/seed.sql'));
 await db.exec(read('supabase/update_2.sql'));
 await db.exec(read('supabase/update_3.sql'));
 await db.exec(read('supabase/update_4.sql'));
+await db.exec(read('supabase/update_5.sql'));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -170,6 +171,8 @@ check(ex.length === roster.length && ex.some(r => r.animal === 'rat'), 'export l
 check((await view(A)).admin.joined.length >= 5 && (await view(A)).admin.draftAssessment === false, 'admin sees joined list, no draft flag');
 await adm(A, { cmd: 'resetAll' }); v = await view(A);
 check(v.phase === 'idle' && v.admin.joined.length === 0 && (await view(t1)).me.g1 === null, 'reset clears the game');
+check((await view(A)).admin.joined.length === 1, 'a device still open rejoins after reset without logging in');
+await next(); check((await view(t1)).phase === 'lobby', 'restart goes back to the lobby');
 // equal totals are ranked by time
 const playG2 = async (round, first, second) => {
   await adm(A, { cmd: 'goto', phase: 'g2_motion', round, clear: true }); await next(); await next();

@@ -112,6 +112,7 @@ function keyPlayer(){
   return [V.phase,V.round,V.board,V.recapTab,m.g1||'',m.submitted?1:0,x.signs||0,g.choice||'',m.group?m.group.no:''].join('|');
 }
 function renderPlayer(){
+  if(V.phase==='idle'||V.phase==='lobby'){store.del('q:'+V.me.id);LG.round=-1;seenSigns=-1}
   const inForest=V.phase==='g1'||V.phase==='g1_end';
   document.body.className=inForest?'forest':V.phase==='g3_intro'?'g3cover':['g3_board','g3_reveal','g3_scores'].includes(V.phase)?'store':'';
   MMAudio.scene(inForest?'forest':'none');
@@ -311,13 +312,13 @@ function drawBar(){
   const a=V.admin;
   $('#bar').innerHTML=`<button class="btn ghost ${V.board?'on':''}" id="bBoard">🏆 สกอร์บอร์ด</button>
     ${V.phase==='g2_reveal'?`<button class="btn ghost ${V.recapTab==='wrong'?'on':''}" id="bWrong">ถ้าพูดผิดสไตล์</button>`:''}
-    <button class="btn ghost" id="bSet">⚙️ ตั้งค่า</button><button class="btn ghost" id="bBo">📊 หลังบ้าน</button><button class="btn ghost" id="bFs">⛶</button><button class="btn ghost ${MMAudio.musicOn?'on':''}" id="bMusic">🎵</button><button class="btn ghost ${MMAudio.sfxOn?'on':''}" id="bMute">🔔</button>
+    <button class="btn ghost" id="bSet">⚙️ ตั้งค่า</button><button class="btn ghost" id="bBo">📊 หลังบ้าน</button><button class="btn ghost" id="bReset">🔄 เริ่มใหม่</button><button class="btn ghost" id="bFs">⛶</button><button class="btn ghost ${MMAudio.musicOn?'on':''}" id="bMusic">🎵</button><button class="btn ghost ${MMAudio.sfxOn?'on':''}" id="bMute">🔔</button>
     <span class="stat">เข้าแล้ว ${a.joined.length}/${V.totalUsers}</span>
     ${a.draftAssessment?'<span class="warn">เกม 1 ใช้คำถามทดสอบ</span>':''}
     ${a.nextLabel?`<button class="btn primary" id="bNext">${esc(a.nextLabel)}</button>`:'<span style="margin-left:auto"></span>'}`;
   $('#bBoard').onclick=()=>cmd({cmd:'board',on:!V.board});
   if($('#bWrong'))$('#bWrong').onclick=()=>cmd({cmd:'recapTab',tab:V.recapTab==='wrong'?'answer':'wrong'});
-  $('#bSet').onclick=openPanel;$('#bBo').onclick=()=>window.open(location.pathname+'#backoffice','_blank');
+  $('#bSet').onclick=openPanel;$('#bReset').onclick=openReset;$('#bBo').onclick=()=>window.open(location.pathname+'#backoffice','_blank');
   $('#bFs').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();
   $('#bMute').onclick=()=>{MMAudio.sfx(!MMAudio.sfxOn);drawBar()};
   $('#bMusic').onclick=()=>{MMAudio.music(!MMAudio.musicOn);drawBar()};
@@ -393,6 +394,23 @@ const hasVideo=n=>fetch(videoUrl(n),{method:'HEAD',cache:'no-store'}).then(r=>r.
 function dist(){return `<div class="dist">${AK.map(a=>`<div class="dcol"><img class="${V.phase==='g1_end'?'a-'+a:'sway'}" src="img/${a}.png" alt=""><div class="n" data-b="n-${a}">0</div><div class="l">${A[a].th}</div><small>${A[a].strength}</small></div>`).join('')}</div>`}
 
 /* settings panel */
+function openReset(){
+  panelOpen=true;
+  $('#pn').innerHTML=`<div class="panel resetbox" role="dialog" aria-modal="true" aria-labelledby="rsT"><h2 id="rsT">🔄 รีเซ็ตทั้งหมดและเริ่มเล่นใหม่?</h2>
+  <p>ผลเกมที่ 1 GEL Promise คำตอบ และคะแนนทั้งหมดจะถูกลบ <b>กู้คืนไม่ได้</b></p>
+  <p>ยังเก็บไว้: รายชื่อพนักงาน กลุ่ม วิดีโอ และการตั้งค่าคะแนน ทุกคนไม่ต้องล็อกอินใหม่ แล้วหน้าจอจะกลับไปที่ QR รอเริ่มเกม</p>
+  <div class="jump"><button class="btn w" id="rsX">⬇️ ดาวน์โหลดผลก่อน</button><button class="btn k" id="rsNo">ยกเลิก</button><button class="btn" id="rsGo">รีเซ็ตและเริ่มใหม่</button></div></div>`;
+  const close=()=>{panelOpen=false;$('#pn').innerHTML=''};
+  $('#rsX').onclick=exportExcel;
+  $('#rsNo').onclick=close;
+  $('#rsGo').onclick=async e=>{
+    e.target.disabled=true;
+    const a=await cmd({cmd:'resetAll'});
+    if(!a||a.error){e.target.disabled=false;return}
+    await cmd({cmd:'next'});
+    seenSigns=-1;close();toast('รีเซ็ตแล้ว พร้อมเริ่มเล่นใหม่');
+  };
+}
 function openPanel(){
   panelOpen=true;const a=V.admin,s=a.settings;
   $('#pn').innerHTML=`<div class="panel"><button class="x" id="pX">ปิด</button><h2>ตั้งค่าเกม</h2>
@@ -417,7 +435,7 @@ function openPanel(){
   $('#jso').onclick=()=>{if(confirm('เล่นข้อนี้ใหม่? คะแนนของข้อนี้จะถูกล้าง')){cmd({cmd:'goto',phase:'g2_motion',round:$('#js').value,clear:true});$('#pX').click()}};
   $('#jpo').onclick=()=>{if(confirm('เล่นคนนี้ใหม่? คะแนนของรอบนี้จะถูกล้าง')){seenSigns=-1;cmd({cmd:'goto',phase:'g3_board',round:$('#jp').value,clear:true});$('#pX').click()}};
   $('#xScore').onclick=()=>{if(confirm('ล้างคะแนนเกม 2 และ 3 ทั้งหมด?'))cmd({cmd:'resetScores'})};
-  $('#xAll').onclick=()=>{if(prompt('พิมพ์ RESET เพื่อรีเซ็ตเกมทั้งหมด (ผลเกม 1 และคะแนนจะหาย)')==='RESET'){cmd({cmd:'resetAll'});$('#pX').click()}};
+  $('#xAll').onclick=openReset;
   $('#xOut').onclick=()=>{panelOpen=false;logout()};
   $('#xXlsx').onclick=exportExcel;
 }
