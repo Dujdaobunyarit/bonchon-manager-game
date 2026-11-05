@@ -1,0 +1,125 @@
+// Game rules against a real Postgres engine (PGlite), called as the anon role like a browser. npm test
+import { PGlite } from '@electric-sql/pglite';
+import fs from 'fs'; import assert from 'assert';
+const R = decodeURIComponent(new URL('..', import.meta.url).pathname), read = f => fs.readFileSync(R + f, 'utf8'), json = f => JSON.parse(read(f));
+const content = json('data/content.json'), roster = json('data/roster.json'), assess = json('data/assessment.json');
+const PW = json('private/passwords.json');
+const db = new PGlite();
+await db.exec(`create role anon nologin; create role authenticated nologin;`);
+await db.exec(read('supabase/schema.sql'));
+await db.exec(read('private/seed.sql'));
+await db.exec('set role anon');
+let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
+const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
+const login = (id, pw) => rpc('mm_login', id, pw), view = t => rpc('mm_view', t), act = (t, b) => rpc('mm_act', t, b), adm = (t, b) => rpc('mm_admin', t, b);
+const denied = async sql => { try { await db.query(sql); return false; } catch { return true; } };
+
+const L4 = roster.filter(u => u.level === 'L4'), EQ = roster.find(u => u.group === 'equity'), FR = roster.find(u => u.group === 'franchise');
+check((await login(EQ.id, 'nope')).error, 'wrong password rejected');
+check((await login('999999', PW.user)).error, 'unknown employee rejected');
+check((await login(PW.adminUser, PW.user)).error, 'admin needs the admin password');
+check((await login(EQ.id.replace(/^0+/, ''), PW.user)).token, 'id without leading zeros accepted');
+check((await login(FR.id, PW.user)).token, 'franchise login accepted');
+const A = (await login(PW.adminUser.toUpperCase(), PW.admin)).token, next = () => adm(A, { cmd: 'next' });
+const t1 = (await login(L4[0].id, PW.user)).token, t2 = (await login(L4[1].id, PW.user)).token, t3 = (await login(L4[2].id, PW.user)).token;
+const t5 = (await login(EQ.id, PW.user)).token;
+// browser cannot reach private data
+check(await denied('select * from game.roster'), 'anon cannot read roster');
+check(await denied('select * from game.config'), 'anon cannot read answers');
+check(await denied('select game.scoreboard()'), 'anon cannot call helpers');
+check(await denied('update public.mm_tick set rev = 99'), 'anon cannot write the signal');
+check((await db.query('select * from public.mm_tick')).rows.length === 1, 'anon can read the change signal');
+check((await view('00000000-0000-0000-0000-000000000000')).error === 'login', 'bad token rejected');
+check((await adm(t1, { cmd: 'next' })).error, 'player cannot run admin commands');
+check((await rpc('mm_export', t1)).error, 'player cannot export');
+// game 1
+await next(); check((await act(t1, { type: 'g1', answers: [] })).error, 'cannot play before start');
+await next(); check((await view(t1)).phase === 'g1', 'launch → game 1');
+const Q = (await rpc('mm_assessment', t1)).questions;
+check(Q.length === assess.questions.length && !JSON.stringify(Q).includes('"a"'), 'quiz hides animal mapping');
+const r5 = await act(t5, { type: 'g1', answers: assess.questions.map(q => q.options.findIndex(o => o.a === 'rat')) });
+check(r5.animal === 'rat', 'all-rat answers → rat (L5 can play game 1)');
+check((await act(t1, { type: 'g1', answers: [0] })).error, 'partial quiz rejected');
+check((await act(t2, { type: 'g1', answers: assess.questions.map(() => 99) })).error, 'invalid option rejected');
+check((await view(t5)).me.g1 === 'rat', 'result shown in my view');
+// scoring from the Self-Check: letters map A/B/C/D → bull/eagle/rat/bear, ties use Q1, Q7, then A>B>C>D
+check(assess.questions.length === 12 && assess.questions.every(q => q.options.map(o => o.a).join() === 'bull,eagle,rat,bear'), '12 questions, A–D map to the 4 animals');
+const L = { A: 0, B: 1, C: 2, D: 3 }, tk = async n => (await login(roster.filter(u => u.level === 'L5')[n].id, PW.user)).token;
+const sheet = async (n, s) => { const r = await act(await tk(n), { type: 'g1', answers: [...s].map(x => L[x]) }); return r.animal; };
+check(await sheet(10, 'AAAAABBBCCDD') === 'bull', 'A5 B3 C2 D2 → กระทิง');
+check(await sheet(11, 'BBBBBAAAACCD') === 'eagle', 'most B → อินทรี');
+check(await sheet(13, 'CAAAAACCCCDB') === 'rat', 'tie A5 C5: Q1 is C → หนู');
+check(await sheet(14, 'ACAAAABCCCCD') === 'bull', 'tie A5 C5: Q1 is A → กระทิง');
+check(await sheet(15, 'DAAAAACCCCCB') === 'rat', 'tie A5 C5: Q1 no match, Q7 is C → หนู');
+check(await sheet(16, 'DAAAAABCCCCC') === 'bull', 'tie A5 C5: Q1 and Q7 no match → A first');
+check(await sheet(17, 'DBBBBBDCCCCC') === 'eagle', 'tie B5 C5: no match → B before C');
+const tp = await tk(10); check((await act(tp, { type: 'g1promise', gap: 'ใจร้อน', next: 'พูดสุภาพ' })).ok && (await view(tp)).me.promise.gap === 'ใจร้อน', 'GEL Promise saved');
+check((await act(t1, { type: 'g1promise', gap: 'x', next: 'y' })).error, 'promise needs a result first');
+// game 2
+await next(); await next(); await next(); await next();
+let v = await view(t1);
+check(v.phase === 'g2_countdown' && v.endsAt > v.now && !v.cards, 'countdown runs, cards hidden');
+check((await act(t1, { type: 'g2', map: {} })).error, 'no submit during countdown');
+await next(); v = await view(t1);
+check(v.phase === 'g2_match' && v.cards.length === 4 && !JSON.stringify(v).includes('"a"') && !v.answer, 'match open, answers not sent');
+const v5 = await view(t5);
+check(v5.me.canPlay === false && v5.cards.length === 4, 'L5 sees cards, cannot play');
+check((await act(t5, { type: 'g2', map: {} })).error, 'L5 cannot submit game 2');
+const sc = content.scenarios[0], correct = Object.fromEntries(Object.keys(sc.commands).map(k => [k, v.cards.find(x => x.t === sc.commands[k]).id]));
+const swapped = { ...correct, bull: correct.eagle, eagle: correct.bull };
+check((await act(t1, { type: 'g2', map: { ...correct, bull: correct.eagle } })).error, 'duplicate links rejected');
+await act(t3, { type: 'g2', map: swapped }); await act(t1, { type: 'g2', map: correct }); await act(t2, { type: 'g2', map: correct });
+check((await act(t1, { type: 'g2', map: swapped })).ok, 'resubmit ignored');
+check((await view(t1)).me.submitted === true && (await view(t1)).submitted === 3, 'submission counted');
+await next(); v = await view(t1);
+check(v.phase === 'g2_reveal' && v.answer.length === 4 && v.me.result.pts === 55 && v.allCorrect === 2, 'first correct: 4×10 + 15 = 55');
+check((await view(t3)).me.result.pts === 20, 'submitted first but 2 wrong: 20, no bonus');
+check((await act(t2, { type: 'g2', map: correct })).ok === undefined, 'no submits after reveal');
+await adm(A, { cmd: 'recapTab', tab: 'wrong' }); check((await view(t5)).recapTab === 'wrong', 'recap tab synced');
+await next(); v = await view(t1);
+const b = (vw, n) => vw.scoreboard.find(r => r.id === L4[n].id);
+check(b(v, 0).total === 55 && b(v, 1).total === 54 && b(v, 2).total === 20 && b(v, 0).rank === 1, 'scoreboard 55 / 54 / 20 ranked');
+check(v.scoreboard.length === L4.length && !v.scoreboard.some(r => r.id === EQ.id), 'scoreboard only lists L4');
+check(v.me.score.total === 55, 'my score in header');
+await adm(A, { cmd: 'board', on: true }); check((await view(t5)).scoreboard, 'admin shows scoreboard to all'); await adm(A, { cmd: 'board', on: false });
+// countdown auto-advance
+await next(); await next(); v = await view(t1); check(v.phase === 'g2_countdown' && v.round === 1, 'next scenario countdown');
+await db.exec('reset role'); await db.exec(`update game.state set ends_at = now() - interval '1 second'`); await db.exec('set role anon');
+v = await view(t5); check(v.phase === 'g2_match' && v.cards.length === 4, 'countdown auto-opens match when due');
+// game 3
+await adm(A, { cmd: 'goto', phase: 'g3_intro' }); await next(); v = await view(t1);
+const P = content.personas[0];
+check(v.phase === 'g3_board' && v.g3.clues.length === 4 && v.g3.clues.every(x => x === null) && !v.g3.persona, 'game 3 starts closed, persona hidden');
+check(!JSON.stringify(v).includes(P.tag), 'hashtag not sent early');
+check((await act(t1, { type: 'g3', choice: P.id })).error, 'no answer before first sign');
+await next(); v = await view(t1); check(v.g3.clues[0] === P.clues[0] && v.g3.clues[1] === null, 'sign 1 opens, others hidden');
+await act(t2, { type: 'g3', choice: P.id }); await act(t1, { type: 'g3', choice: 'p2' });
+check((await act(t1, { type: 'g3', choice: P.id })).error, 'wrong guess locks until next sign');
+check((await view(t1)).me.g3.wrongThisSign === true, 'wrong state shown');
+check((await act(t5, { type: 'g3', choice: P.id })).error, 'L5 cannot answer game 3');
+await next(); check((await act(t1, { type: 'g3', choice: 'p2' })).error, 'same wrong choice refused');
+await act(t1, { type: 'g3', choice: P.id });
+await next(); await next(); await act(t3, { type: 'g3', choice: P.id });
+await next(); v = await view(t1);
+check(v.phase === 'g3_reveal' && v.g3.persona.name === P.name && v.me.result.pts === 89, 'sign 2 second place: 75 + 14 = 89');
+await next(); v = await view(t1);
+check(b(v, 1).total === 54 + 115 && b(v, 0).total === 55 + 89 && b(v, 2).total === 20 + 38, 'game 3: 100+15, 75+14, 25+13 accumulates');
+// settings
+await adm(A, { cmd: 'settings', settings: { signCount: '2', signPoints: [100, 50], wrongPenalty: 5 } }); await next(); v = await view(t1);
+check(v.g3.signCount === 2 && v.g3.signPoints[1] === 50, 'sign count editable, applies next round');
+await next(); await act(t1, { type: 'g3', choice: 'p1' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' });
+check(((await view(t1)).me.result || {}).pts === -5, 'wrong-answer penalty setting works');
+// replay & export
+await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 0, clear: true }); await adm(A, { cmd: 'goto', phase: 'g3_board', round: 1, clear: true });
+await adm(A, { cmd: 'settings', settings: { wrongPenalty: 0 } });
+await adm(A, { cmd: 'goto', phase: 'g2_end' }); v = await view(t1);
+check(b(v, 0).total === 89, 'replaying a round clears only that round');
+const ex = (await rpc('mm_export', A)).rows;
+check(ex.length === roster.length && ex.some(r => r.animal === 'rat'), 'export lists everyone with animal');
+check((await view(A)).admin.joined.length >= 5 && (await view(A)).admin.draftAssessment === false, 'admin sees joined list, no draft flag');
+await adm(A, { cmd: 'resetAll' }); v = await view(A);
+check(v.phase === 'idle' && v.admin.joined.length === 0 && (await view(t1)).me.g1 === null, 'reset clears the game');
+// last round transitions
+await adm(A, { cmd: 'goto', phase: 'g2_motion', round: content.scenarios.length - 1 }); for (let i = 0; i < 4; i++) await next();
+check((await view(A)).admin.nextLabel === 'สรุปเกมที่ 2', 'last scenario leads to summary'); await next(); check((await view(A)).phase === 'g2_end', 'game 2 end');
+console.log(`\nPASS ${ok} checks`); process.exit(0);

@@ -1,0 +1,24 @@
+// Local preview: serves the site and answers Supabase RPC calls from an in-memory Postgres. No Realtime, so clients poll.
+import { PGlite } from '@electric-sql/pglite';
+import http from 'http'; import fs from 'fs'; import path from 'path';
+const R = decodeURIComponent(new URL('..', import.meta.url).pathname), read = f => fs.readFileSync(R + f, 'utf8');
+const db = new PGlite();
+await db.exec(`create role anon nologin; create role authenticated nologin;`);
+await db.exec(read('supabase/schema.sql')); await db.exec(read('private/seed.sql')); await db.exec('set role anon');
+const ARGS = { mm_login: ['p_id', 'p_password'], mm_view: ['p_token'], mm_assessment: ['p_token'], mm_act: ['p_token', 'p_body'], mm_admin: ['p_token', 'p_body'], mm_export: ['p_token'] };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg' };
+http.createServer((req, res) => {
+  const p = new URL(req.url, 'http://x').pathname;
+  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' };
+  if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
+  const m = /^\/rest\/v1\/rpc\/(\w+)$/.exec(p);
+  if (m) { let b = ''; req.on('data', d => b += d); req.on('end', async () => { try {
+    const body = JSON.parse(b || '{}'), a = ARGS[m[1]].map(k => body[k]);
+    const r = await db.query(`select public.${m[1]}(${a.map((_, i) => `$${i + 1}`).join(',')}) v`, a);
+    res.writeHead(200, { ...cors, 'Content-Type': 'application/json' }); res.end(JSON.stringify(r.rows[0].v));
+  } catch (e) { res.writeHead(400, { ...cors, 'Content-Type': 'application/json' }); res.end(JSON.stringify({ message: e.message })); } }); return; }
+  if (p === '/config.js') { res.writeHead(200, { 'Content-Type': 'text/javascript' }); return res.end(`window.MM_CONFIG={supabaseUrl:location.origin,anonKey:'local'}`); }
+  const f = path.join(R, p === '/' ? 'index.html' : decodeURIComponent(p));
+  if (!f.startsWith(R) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-cache' }); fs.createReadStream(f).pipe(res);
+}).listen(3000, () => console.log('dev on 3000'));
