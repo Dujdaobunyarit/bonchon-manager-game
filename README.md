@@ -14,7 +14,7 @@
 
 ติดตั้งแล้วในโปรเจกต์ `bonchon-manager-game` ค่าใน `config.js` เป็นค่าที่อยู่ในหน้าเว็บได้ ห้ามใส่ service_role key
 
-ถ้าติดตั้งใหม่ ให้เปิด SQL Editor แล้วรัน `supabase/schema.sql`, `supabase/storage.sql`, `private/seed.sql`, `supabase/update_2.sql` และ `supabase/update_3.sql` ตามลำดับ จากนั้น deploy `supabase/functions/motion-upload` แล้วรัน `node tools/load-roster.mjs`
+ถ้าติดตั้งใหม่ ให้เปิด SQL Editor แล้วรัน `supabase/schema.sql`, `supabase/storage.sql`, `private/seed.sql`, `supabase/update_2.sql`, `supabase/update_3.sql` และ `supabase/update_4.sql` ตามลำดับ จากนั้น deploy `supabase/functions/motion-upload` แล้วรัน `node tools/load-roster.mjs`
 
 ## ไฟล์ที่ห้ามขึ้น GitHub หรือโฮสติ้ง
 

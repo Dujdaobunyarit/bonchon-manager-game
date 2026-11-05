@@ -10,6 +10,7 @@ await db.exec(read('supabase/schema.sql'));
 await db.exec(read('private/seed.sql'));
 await db.exec(read('supabase/update_2.sql'));
 await db.exec(read('supabase/update_3.sql'));
+await db.exec(read('supabase/update_4.sql'));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -169,6 +170,21 @@ check(ex.length === roster.length && ex.some(r => r.animal === 'rat'), 'export l
 check((await view(A)).admin.joined.length >= 5 && (await view(A)).admin.draftAssessment === false, 'admin sees joined list, no draft flag');
 await adm(A, { cmd: 'resetAll' }); v = await view(A);
 check(v.phase === 'idle' && v.admin.joined.length === 0 && (await view(t1)).me.g1 === null, 'reset clears the game');
+// equal totals are ranked by time
+const playG2 = async (round, first, second) => {
+  await adm(A, { cmd: 'goto', phase: 'g2_motion', round, clear: true }); await next(); await next();
+  const vw = await view(first), sc9 = content.scenarios[round], mp = Object.fromEntries(Object.keys(sc9.commands).map(k => [k, vw.cards.find(x => x.t === sc9.commands[k]).id]));
+  await act(first, { type: 'g2', map: mp }); await act(second, { type: 'g2', map: mp }); await next(); await next(); await next();
+  return view(A);
+};
+await playG2(3, t1, t2); let tie = await playG2(4, t2, t1);
+const row = (vw, n) => vw.scoreboard.find(x => x.id === L4[n].id);
+check(row(tie, 0).total === 215 && row(tie, 1).total === 215, 'two groups can reach the same total');
+await db.exec('reset role'); await db.exec(`update game.g2_sub set at = at + interval '5 seconds' where round = 3 and key = '${L4[0].id.replace(/^0+/, '')}'`); await db.exec(`update public.mm_tick set rev = rev + 1`); await db.exec('set role anon');
+tie = await view(A);
+check(row(tie, 1).rank === 1 && row(tie, 0).rank === 2 && tie.scoreboard[0].id === L4[1].id && row(tie, 0).ms > row(tie, 1).ms, 'equal totals: the faster group ranks higher');
+check(tie.scoreboard.filter(x => x.total === 0).every(x => x.ms === 0), 'groups that never scored have no time');
+await adm(A, { cmd: 'resetAll' });
 // last round transitions
 await adm(A, { cmd: 'goto', phase: 'g2_motion', round: content.scenarios.length - 1 }); for (let i = 0; i < 5; i++) await next();
 check((await view(A)).admin.nextLabel === 'สรุปเกมที่ 2', 'last scenario leads to summary'); await next(); check((await view(A)).phase === 'g2_end', 'game 2 end');

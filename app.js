@@ -148,7 +148,7 @@ const PV={
     m.innerHTML=V.me.canPlay?`<div class="center"><p class="sub">คุณคือหัวหน้า</p><div class="gcard"><div>กลุ่มที่</div><div class="no">${g.no}</div><div>AC ${esc(g.nick)}</div></div><p class="sub">ลูกทีม Store Manager ${V.me.members??0} คน เปิดจอนี้ให้ทีมดูตอนเล่นเกมที่ 2 และ 3</p></div>`
     :`<div class="center"><p class="sub">${esc(V.me.store)}</p><h2 class="h brush">คุณอยู่</h2><div class="gcard"><div>กลุ่มที่</div><div class="no">${g.no}</div><div>AC ${esc(g.nick)}</div></div><p class="sub">ไปรวมตัวกับ AC ${esc(g.nick)} แล้วดูจอหลักด้วยกันในเกมที่ 2 และ 3</p></div>`;
   },
-  g2_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 2</span><h2 class="h brush">สั่งงานให้<em>ตรงประเภท</em></h2><div class="rules"><div>ดูสถานการณ์บนจอหลัก แล้วจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว</div><div>ถูกครบได้ <b>100 pt</b> ถูกครึ่งเดียวได้ <b>50 pt</b></div><div>คนแรกที่ถูกครบได้โบนัสอีก <b>15 pt</b> คนเดียวเท่านั้น</div><div>มีทั้งหมด <b>${V.g2N} สถานการณ์</b> คะแนนสะสมต่อเนื่อง</div></div></div>`},
+  g2_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 2</span><h2 class="h brush">สั่งงานให้<em>ตรงประเภท</em></h2><div class="rules"><div>ดูสถานการณ์บนจอหลัก แล้วจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว</div><div>ถูกครบได้ <b>100 pt</b> ถูกครึ่งเดียวได้ <b>50 pt</b></div><div>คนแรกที่ถูกครบได้โบนัสอีก <b>15 pt</b> คนเดียวเท่านั้น</div><div>คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า</div><div>มีทั้งหมด <b>${V.g2N} สถานการณ์</b> คะแนนสะสมต่อเนื่อง</div></div></div>`},
   g2_motion(m){if(!V.me.canPlay)return watchScreen(m,esc(V.scenario.title),`สถานการณ์ที่ ${V.scenario.n}/${V.g2N}`);m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</span><h2 class="h brush">ดูจอหลักเลย!</h2><p class="scen">${esc(V.scenario.title)}</p><p class="sub">${esc(V.scenario.situation)}</p></div>`},
   g2_countdown(m){if(!V.me.canPlay)return watchScreen(m,esc(V.scenario.title),'เตรียมตัว…');m.innerHTML=`<div class="center"><p class="sub">เตรียมตัว…</p><div class="big" style="font-size:clamp(120px,35vw,240px);font-weight:800;color:var(--red);line-height:1" data-b="cd">${cdLeft()}</div></div>`},
   g2_match(m){
@@ -166,7 +166,7 @@ const PV={
   },
   g2_scores(m){m.innerHTML=boardHTML(`คะแนนหลังสถานการณ์ที่ ${V.scenario.n}`)},
   g2_end(m){m.innerHTML=boardHTML('จบเกมที่ 2')},
-  g3_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 3</span><h2 class="h brush">แฟน<em>พันธุ์แท้</em> ลูกค้า</h2><div class="rules"><div>เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน</div><div>ยิ่งเปิดป้ายน้อย ยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b></div><div>ตอบได้ครั้งเดียว ส่งแล้วล็อกทันที เฉลยพร้อมกันตอนท้าย</div><div>คนแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b> คนเดียวเท่านั้น</div></div></div>`},
+  g3_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 3</span><h2 class="h brush">แฟน<em>พันธุ์แท้</em> ลูกค้า</h2><div class="rules"><div>เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน</div><div>ยิ่งเปิดป้ายน้อย ยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b></div><div>ตอบได้ครั้งเดียว ส่งแล้วล็อกทันที เฉลยพร้อมกันตอนท้าย</div><div>คนแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b> คนเดียวเท่านั้น</div><div>คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า</div></div></div>`},
   g3_board:g3Player,
   g3_reveal(m){
     const p=V.g3.persona,r=V.me.result;
@@ -345,7 +345,7 @@ const HV={
   g1(s){s.innerHTML=`<div class="scr"><span class="tag" style="font-size:30px;align-self:flex-start;margin-top:14px">เกมที่ 1</span><h1 class="t2 brush" style="margin-top:8px">เราคือสัตว์<em>ประเภทไหน?</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800;font-size:72px">0</span> / ${V.totalUsers} คน ทำเสร็จแล้ว</p>${dist()}</div>`},
   g1_end(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:16px">ทีมเราเป็น<em>แบบนี้!</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800">0</span> คน ได้รับสติ๊กเกอร์ของตัวเอง</p>${dist()}</div>`;fanfare();confetti(90)},
   groups(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">แบ่ง<em>กลุ่ม</em> ไปรวมตัวกับ AC ของคุณ</h1><div class="hgroups">${(V.groups||[]).map(g=>`<div class="hgroup"><b>${g.no}</b><span>AC ${esc(g.nick)}</span><small>${g.members} คน</small></div>`).join('')}</div></div>`},
-  g2_intro(s){introHost(s,'เกมที่ 2','สั่งงานให้<em>ตรงประเภท</em>',['AC ของแต่ละกลุ่มจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว','ถูกครบ <b>100 pt</b> ถูกครึ่งเดียว <b>50 pt</b>','กลุ่มแรกที่ถูกครบได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น',`ทั้งหมด <b>${V.g2N} สถานการณ์</b> ลูกทีมร่วมลุ้นที่จอหลักของ AC`])},
+  g2_intro(s){introHost(s,'เกมที่ 2','สั่งงานให้<em>ตรงประเภท</em>',['AC ของแต่ละกลุ่มจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว','ถูกครบ <b>100 pt</b> ถูกครึ่งเดียว <b>50 pt</b>','กลุ่มแรกที่ถูกครบได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น','คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า',`ทั้งหมด <b>${V.g2N} สถานการณ์</b> ลูกทีมร่วมลุ้นที่จอหลักของ AC`])},
   g2_motion(s){
     const n=V.scenario.n;
     s.innerHTML=`<div class="scr c"><span class="tag" style="font-size:40px">สถานการณ์ที่ ${n}/${V.g2N}</span><h1 class="t1 brush" style="margin:22px 0;max-width:1650px">${esc(V.scenario.title)}</h1><p class="t3" style="max-width:1400px;font-size:48px">${esc(V.scenario.situation)}</p><p id="noMotion" style="color:var(--mute);margin-top:26px;font-size:24px"></p></div>`;
@@ -365,7 +365,7 @@ const HV={
   },
   g2_scores(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">สกอร์บอร์ด <em>หลังสถานการณ์ที่ ${V.scenario.n}</em></h1>${hBoard()}</div>`},
   g2_end(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">จบ<em>เกมที่ 2</em></h1>${hBoard()}</div>`;fanfare()},
-  g3_intro(s){introHost(s,'เกมที่ 3','แฟน<em>พันธุ์แท้</em> ลูกค้า',['เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน','ยิ่งเปิดน้อยยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b>','แต่ละกลุ่มตอบได้ครั้งเดียว เฉลยพร้อมกันตอนท้าย','กลุ่มแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น'],'img/personas-all.jpg')},
+  g3_intro(s){introHost(s,'เกมที่ 3','แฟน<em>พันธุ์แท้</em> ลูกค้า',['เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน','ยิ่งเปิดน้อยยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b>','แต่ละกลุ่มตอบได้ครั้งเดียว เฉลยพร้อมกันตอนท้าย','กลุ่มแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น','คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า'],'img/personas-all.jpg')},
   g3_board(s){
     const g=V.g3,isNew=g.signs>seenSigns?g.signs-1:-1;seenSigns=g.signs;if(isNew>=0)MMAudio.open();
     s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">เค้าคือ<em>ใคร?</em> <span style="font-size:32px;color:var(--mute);font-style:normal;font-weight:500">คนที่ ${V.round+1}/${V.g3N}</span></h1><div class="g3grid"><div class="g3side"><div class="mystery">?</div><div class="t3">ส่งคำตอบแล้ว <b data-b="answered" style="color:var(--red)">0</b>/${V.totalPlayers} กลุ่ม</div></div><div class="hsigns">${g.clues.map((c,i)=>c?`<div class="hsign ${i===isNew?'flip':''}"><span>${esc(c)}</span><span class="p">${g.signPoints[i]} pt</span></div>`:`<div class="hsign closed"><span>ป้ายที่ ${i+1}</span><span class="p">${g.signPoints[i]} pt</span></div>`).join('')}</div></div></div>`;
@@ -428,7 +428,7 @@ async function exportExcel(){
       rows:j.g2.map(r=>[r.n,r.title,r.groupNo,r.id,r.name,r.order,yn(r.pairs.bull),yn(r.pairs.eagle),yn(r.pairs.rat),yn(r.pairs.bear),r.correct,r.base,r.bonus,r.pts])},
     {name:'เกม 3 พันธุ์แท้',head:['คนที่','Persona','กลุ่ม','รหัสพนักงาน','ชื่อ','ตอบ','ตอบตอนป้ายที่','ผล','คะแนนฐาน','โบนัส','หักคะแนน','คะแนนรวม'],
       rows:j.g3.map(r=>[r.n,r.persona,r.groupNo,r.id,r.name,r.choice,r.sign,r.correct?'ถูก':'ผิด',r.base,r.bonus,r.penalty,r.pts])},
-    {name:'สกอร์บอร์ด',head:['อันดับ','กลุ่ม','AC','รหัสพนักงาน','ชื่อ','คะแนนเกม 2','คะแนนเกม 3','คะแนนรวม'],rows:j.board.map(r=>[r.rank,r.group,r.nick,r.id,r.name,r.g2,r.g3,r.total])},
+    {name:'สกอร์บอร์ด',head:['อันดับ','กลุ่ม','AC','รหัสพนักงาน','ชื่อ','คะแนนเกม 2','คะแนนเกม 3','คะแนนรวม','เวลารวม (วินาที)'],rows:j.board.map(r=>[r.rank,r.group,r.nick,r.id,r.name,r.g2,r.g3,r.total,Math.round(r.ms/10)/100])},
     {name:'ข้อมูลไฟล์',head:['รายการ','ค่า'],rows:[['ดาวน์โหลดเมื่อ',stamp],['พนักงานทั้งหมด',rows.length],['เข้าเกมแล้ว',rows.filter(r=>r.joined).length],['ทำเกม 1 แล้ว',rows.filter(r=>r.animal).length]]},
   ];
   const u=URL.createObjectURL(MMXlsx(sheets)),l=document.createElement('a'),p=n=>String(n).padStart(2,'0');
