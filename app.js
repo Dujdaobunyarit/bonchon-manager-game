@@ -148,7 +148,7 @@ const PV={
     m.innerHTML=V.me.canPlay?`<div class="center"><p class="sub">คุณคือหัวหน้า</p><div class="gcard"><div>กลุ่มที่</div><div class="no">${g.no}</div><div>AC ${esc(g.nick)}</div></div><p class="sub">ลูกทีม Store Manager ${V.me.members??0} คน เปิดจอนี้ให้ทีมดูตอนเล่นเกมที่ 2 และ 3</p></div>`
     :`<div class="center"><p class="sub">${esc(V.me.store)}</p><h2 class="h brush">คุณอยู่</h2><div class="gcard"><div>กลุ่มที่</div><div class="no">${g.no}</div><div>AC ${esc(g.nick)}</div></div><p class="sub">ไปรวมตัวกับ AC ${esc(g.nick)} แล้วดูจอหลักด้วยกันในเกมที่ 2 และ 3</p></div>`;
   },
-  g2_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 2</span><h2 class="h brush">สั่งงานให้<em>ตรงประเภท</em></h2><div class="rules"><div>ดูสถานการณ์บนจอหลัก แล้วจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว</div><div>ถูกครบได้ <b>100 pt</b> ถูกครึ่งเดียวได้ <b>50 pt</b></div><div>ถูกครบคนแรกได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b> ไล่ลงไป</div><div>มีทั้งหมด <b>${V.g2N} สถานการณ์</b> คะแนนสะสมต่อเนื่อง</div></div></div>`},
+  g2_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 2</span><h2 class="h brush">สั่งงานให้<em>ตรงประเภท</em></h2><div class="rules"><div>ดูสถานการณ์บนจอหลัก แล้วจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว</div><div>ถูกครบได้ <b>100 pt</b> ถูกครึ่งเดียวได้ <b>50 pt</b></div><div>คนแรกที่ถูกครบได้โบนัสอีก <b>15 pt</b> คนเดียวเท่านั้น</div><div>มีทั้งหมด <b>${V.g2N} สถานการณ์</b> คะแนนสะสมต่อเนื่อง</div></div></div>`},
   g2_motion(m){if(!V.me.canPlay)return watchScreen(m,esc(V.scenario.title),`สถานการณ์ที่ ${V.scenario.n}/${V.g2N}`);m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</span><h2 class="h brush">ดูจอหลักเลย!</h2><p class="scen">${esc(V.scenario.title)}</p><p class="sub">${esc(V.scenario.situation)}</p></div>`},
   g2_countdown(m){if(!V.me.canPlay)return watchScreen(m,esc(V.scenario.title),'เตรียมตัว…');m.innerHTML=`<div class="center"><p class="sub">เตรียมตัว…</p><div class="big" style="font-size:clamp(120px,35vw,240px);font-weight:800;color:var(--red);line-height:1" data-b="cd">${cdLeft()}</div></div>`},
   g2_match(m){
@@ -158,7 +158,7 @@ const PV={
   },
   g2_reveal(m){
     const r=V.me.result;
-    const yours=V.me.canPlay?`<div class="yours">${r?`ถูก ${r.correct}/4 คู่ ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัสความเร็ว ${r.bonus})`:''}`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
+    const yours=V.me.canPlay?`<div class="yours">${r?`ถูก ${r.correct}/4 คู่ ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัสคนแรก ${r.bonus})`:''}`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
     const wrong=V.recapTab==='wrong';
     m.innerHTML=`${spectBanner()}${yours}<div class="round">เฉลย สถานการณ์ที่ ${V.scenario.n}</div><h2 class="scen" style="margin-bottom:4px">${esc(V.scenario.title)}</h2><p class="sub" style="margin-bottom:12px">เป้าหมาย: ${esc(V.scenario.goal)}</p>
     ${V.answer.map(x=>`<div class="rcard"><img src="img/${x.a}.png" alt=""><div><b>${A[x.a].th}</b>${wrong?`<small>ถ้าพูดว่า: ${esc(x.wrong.say)}</small>→ ${esc(x.wrong.result)}`:esc(x.cmd)}</div></div>`).join('')}`;
@@ -166,11 +166,11 @@ const PV={
   },
   g2_scores(m){m.innerHTML=boardHTML(`คะแนนหลังสถานการณ์ที่ ${V.scenario.n}`)},
   g2_end(m){m.innerHTML=boardHTML('จบเกมที่ 2')},
-  g3_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 3</span><h2 class="h brush">แฟน<em>พันธุ์แท้</em> ลูกค้า</h2><div class="rules"><div>เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน</div><div>ยิ่งเปิดป้ายน้อย ยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b></div><div>ตอบได้ครั้งเดียว ส่งแล้วล็อกทันที เฉลยพร้อมกันตอนท้าย</div><div>คนแรกที่ตอบถูกได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b> ไล่ลงไป</div></div></div>`},
+  g3_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 3</span><h2 class="h brush">แฟน<em>พันธุ์แท้</em> ลูกค้า</h2><div class="rules"><div>เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน</div><div>ยิ่งเปิดป้ายน้อย ยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b></div><div>ตอบได้ครั้งเดียว ส่งแล้วล็อกทันที เฉลยพร้อมกันตอนท้าย</div><div>คนแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b> คนเดียวเท่านั้น</div></div></div>`},
   g3_board:g3Player,
   g3_reveal(m){
     const p=V.g3.persona,r=V.me.result;
-    const yours=V.me.canPlay?`<div class="yours">${r&&r.sign!=null?`ตอบถูก ป้ายที่ ${r.sign+1} ได้ <b>+${r.pts} pt</b> (โบนัสความเร็ว ${r.bonus})`:r?`ตอบไม่ถูก รอบนี้ <b>${r.pts} pt</b>`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
+    const yours=V.me.canPlay?`<div class="yours">${r&&r.sign!=null?`ตอบถูก ป้ายที่ ${r.sign+1} ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัสคนแรก ${r.bonus})`:''}`:r?`ตอบไม่ถูก รอบนี้ <b>${r.pts} pt</b>`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
     m.innerHTML=`${spectBanner()}${yours}<div class="center" style="min-height:0"><img class="reveal-img" src="img/${p.img}" alt=""><h2 class="h brush">${esc(p.name)}</h2><p class="tag">${esc(p.tag)}</p></div><div class="signs">${V.g3.clues.map((c,i)=>`<div class="sign"><span>${esc(c)}</span></div>`).join('')}</div>`;
     if(r&&r.sign!=null)confetti(40);
   },
@@ -345,7 +345,7 @@ const HV={
   g1(s){s.innerHTML=`<div class="scr"><span class="tag" style="font-size:30px;align-self:flex-start;margin-top:14px">เกมที่ 1</span><h1 class="t2 brush" style="margin-top:8px">เราคือสัตว์<em>ประเภทไหน?</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800;font-size:72px">0</span> / ${V.totalUsers} คน ทำเสร็จแล้ว</p>${dist()}</div>`},
   g1_end(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:16px">ทีมเราเป็น<em>แบบนี้!</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800">0</span> คน ได้รับสติ๊กเกอร์ของตัวเอง</p>${dist()}</div>`;fanfare();confetti(90)},
   groups(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">แบ่ง<em>กลุ่ม</em> ไปรวมตัวกับ AC ของคุณ</h1><div class="hgroups">${(V.groups||[]).map(g=>`<div class="hgroup"><b>${g.no}</b><span>AC ${esc(g.nick)}</span><small>${g.members} คน</small></div>`).join('')}</div></div>`},
-  g2_intro(s){introHost(s,'เกมที่ 2','สั่งงานให้<em>ตรงประเภท</em>',['AC ของแต่ละกลุ่มจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว','ถูกครบ <b>100 pt</b> ถูกครึ่งเดียว <b>50 pt</b>','ถูกครบคนแรกได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b> ไล่ลงไป',`ทั้งหมด <b>${V.g2N} สถานการณ์</b> ลูกทีมร่วมลุ้นที่จอหลักของ AC`])},
+  g2_intro(s){introHost(s,'เกมที่ 2','สั่งงานให้<em>ตรงประเภท</em>',['AC ของแต่ละกลุ่มจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว','ถูกครบ <b>100 pt</b> ถูกครึ่งเดียว <b>50 pt</b>','กลุ่มแรกที่ถูกครบได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น',`ทั้งหมด <b>${V.g2N} สถานการณ์</b> ลูกทีมร่วมลุ้นที่จอหลักของ AC`])},
   g2_motion(s){
     const n=V.scenario.n;
     s.innerHTML=`<div class="scr c"><span class="tag" style="font-size:40px">สถานการณ์ที่ ${n}/${V.g2N}</span><h1 class="t1 brush" style="margin:22px 0;max-width:1650px">${esc(V.scenario.title)}</h1><p class="t3" style="max-width:1400px;font-size:48px">${esc(V.scenario.situation)}</p><p id="noMotion" style="color:var(--mute);margin-top:26px;font-size:24px"></p></div>`;
@@ -365,7 +365,7 @@ const HV={
   },
   g2_scores(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">สกอร์บอร์ด <em>หลังสถานการณ์ที่ ${V.scenario.n}</em></h1>${hBoard()}</div>`},
   g2_end(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">จบ<em>เกมที่ 2</em></h1>${hBoard()}</div>`;fanfare()},
-  g3_intro(s){introHost(s,'เกมที่ 3','แฟน<em>พันธุ์แท้</em> ลูกค้า',['เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน','ยิ่งเปิดน้อยยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b>','แต่ละกลุ่มตอบได้ครั้งเดียว เฉลยพร้อมกันตอนท้าย','คนแรกที่ตอบถูกได้โบนัส <b>15 pt</b> คนถัดไป <b>14 pt</b>'],'img/personas-all.jpg')},
+  g3_intro(s){introHost(s,'เกมที่ 3','แฟน<em>พันธุ์แท้</em> ลูกค้า',['เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน','ยิ่งเปิดน้อยยิ่งได้เยอะ <b>100 → 75 → 50 → 25 pt</b>','แต่ละกลุ่มตอบได้ครั้งเดียว เฉลยพร้อมกันตอนท้าย','กลุ่มแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น'],'img/personas-all.jpg')},
   g3_board(s){
     const g=V.g3,isNew=g.signs>seenSigns?g.signs-1:-1;seenSigns=g.signs;if(isNew>=0)MMAudio.open();
     s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">เค้าคือ<em>ใคร?</em> <span style="font-size:32px;color:var(--mute);font-style:normal;font-weight:500">คนที่ ${V.round+1}/${V.g3N}</span></h1><div class="g3grid"><div class="g3side"><div class="mystery">?</div><div class="t3">ส่งคำตอบแล้ว <b data-b="answered" style="color:var(--red)">0</b>/${V.totalPlayers} กลุ่ม</div></div><div class="hsigns">${g.clues.map((c,i)=>c?`<div class="hsign ${i===isNew?'flip':''}"><span>${esc(c)}</span><span class="p">${g.signPoints[i]} pt</span></div>`:`<div class="hsign closed"><span>ป้ายที่ ${i+1}</span><span class="p">${g.signPoints[i]} pt</span></div>`).join('')}</div></div></div>`;
@@ -393,7 +393,7 @@ function openPanel(){
   <h3>คะแนน</h3><div class="grid">
     <div><label>เกม 2: ถูกครบ 4 คู่</label><input id="sFull" type="number" min="0" value="${s.fullPoints}"></div>
     <div><label>เกม 2: ถูก 2 คู่</label><input id="sHalf" type="number" min="0" value="${s.halfPoints}"></div>
-    <div><label>โบนัสคนแรก (ลดทีละ 1)</label><input id="sBonus" type="number" min="0" value="${s.bonusStart}"></div>
+    <div><label>โบนัสคนแรกที่ถูก (คนเดียว)</label><input id="sBonus" type="number" min="0" value="${s.bonusStart}"></div>
     <div><label>เกม 3: หักคะแนนเมื่อตอบผิด</label><input id="sPen" type="number" min="0" value="${s.wrongPenalty}"></div>
     <div><label>เกม 3: จำนวนแผ่นป้าย (1–5)</label><input id="sCount" type="number" min="1" max="5" value="${s.signCount}"></div>
     <div style="grid-column:span 2"><label>คะแนนแต่ละป้าย คั่นด้วยจุลภาค</label><input id="sPts" value="${s.signPoints.join(', ')}"></div>

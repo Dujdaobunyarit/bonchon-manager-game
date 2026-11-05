@@ -62,7 +62,7 @@ console.log(`10 coaches submit together: ${rr.filter(r => r.ok).length}/10 in ${
 await step('reveal', () => adm({ cmd: 'next' }));
 await step('wrong style', () => adm({ cmd: 'next' }));
 await step('scoreboard (heaviest)', () => adm({ cmd: 'next' }));
-const b = (await rpc('mm_view', { p_token: A })).scoreboard.map(r => r.total); console.log('  scores', b.join(','), new Set(b).size === b.length ? 'no ties' : 'TIES');
+const b = (await rpc('mm_view', { p_token: A })).scoreboard.map(r => r.total); console.log('  scores', b.join(','), b[0] === 115 && b.slice(1).every(x => x === 100) ? 'first 115, rest 100' : 'UNEXPECTED');
 await adm({ cmd: 'goto', phase: 'g3_board', round: 0, clear: true });
 await step('open sign 1', () => adm({ cmd: 'next' }));
 ts = Date.now(); const pid = content.personas[0].id; const r3 = await Promise.all(coaches.map((c, i) => rpc('mm_act', { p_token: c.t, p_body: { type: 'g3', choice: i % 2 ? pid : 'p7' } })));
