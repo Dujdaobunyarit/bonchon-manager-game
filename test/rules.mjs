@@ -109,6 +109,10 @@ await adm(A, { cmd: 'settings', settings: { signCount: '2', signPoints: [100, 50
 check(v.g3.signCount === 2 && v.g3.signPoints[1] === 50, 'sign count editable, applies next round');
 await next(); await act(t1, { type: 'g3', choice: 'p1' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' });
 check(((await view(t1)).me.result || {}).pts === -5, 'wrong-answer penalty setting works');
+const exAll = await rpc('mm_export', A);
+fs.writeFileSync('/tmp/claude-503/export.json', JSON.stringify(exAll));
+check(exAll.g2.length >= 1 && exAll.g2.every(r => r.pairs && r.order >= 1 && r.title) && exAll.g3.length >= 1 && exAll.g3.every(r => r.persona), 'export has game 2 and 3 detail');
+check(exAll.g3.some(r => r.wrong > 0 && r.wrongNames) && exAll.board.length === 10 && exAll.rows.some(r => r.counts), 'export includes wrong guesses, board and answer counts');
 // replay & export
 await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 0, clear: true }); await adm(A, { cmd: 'goto', phase: 'g3_board', round: 1, clear: true });
 await adm(A, { cmd: 'settings', settings: { wrongPenalty: 0 } });

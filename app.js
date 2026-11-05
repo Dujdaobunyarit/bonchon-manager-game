@@ -282,13 +282,13 @@ function drawBar(){
   const a=V.admin;
   $('#bar').innerHTML=`<button class="btn ghost ${V.board?'on':''}" id="bBoard">🏆 สกอร์บอร์ด</button>
     ${V.phase==='g2_reveal'?`<button class="btn ghost ${V.recapTab==='wrong'?'on':''}" id="bWrong">ถ้าพูดผิดสไตล์</button>`:''}
-    <button class="btn ghost" id="bSet">⚙️ ตั้งค่า</button><button class="btn ghost" id="bFs">⛶</button><button class="btn ghost" id="bMute">${muted?'🔇':'🔊'}</button>
+    <button class="btn ghost" id="bSet">⚙️ ตั้งค่า</button><button class="btn ghost" id="bExp">⬇️ Export</button><button class="btn ghost" id="bFs">⛶</button><button class="btn ghost" id="bMute">${muted?'🔇':'🔊'}</button>
     <span class="stat">เข้าแล้ว ${a.joined.length}/${V.totalUsers}</span>
     ${a.draftAssessment?'<span class="warn">เกม 1 ใช้คำถามทดสอบ</span>':''}
     ${a.nextLabel?`<button class="btn primary" id="bNext">${esc(a.nextLabel)}</button>`:'<span style="margin-left:auto"></span>'}`;
   $('#bBoard').onclick=()=>cmd({cmd:'board',on:!V.board});
   if($('#bWrong'))$('#bWrong').onclick=()=>cmd({cmd:'recapTab',tab:V.recapTab==='wrong'?'answer':'wrong'});
-  $('#bSet').onclick=openPanel;
+  $('#bSet').onclick=openPanel;$('#bExp').onclick=exportExcel;
   $('#bFs').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();
   $('#bMute').onclick=()=>{muted=!muted;drawBar()};
   if($('#bNext'))$('#bNext').onclick=()=>{beep(880,.08);cmd({cmd:'next'})};
@@ -379,7 +379,7 @@ function openPanel(){
     <select id="js">${a.scenarios.map((x,i)=>`<option value="${i}">สถานการณ์ ${x.n}</option>`).join('')}</select><button class="btn k" id="jso">เล่นข้อนี้ใหม่</button>
     <select id="jp">${a.personas.map((x,i)=>`<option value="${i}">${esc(x.name)}</option>`).join('')}</select><button class="btn k" id="jpo">เล่นคนนี้ใหม่</button>
   </div>
-  <h3>ข้อมูล</h3><div class="jump"><button class="btn w" id="xCsv">ดาวน์โหลดผล CSV</button><button class="btn w" id="xScore">ล้างคะแนนเกม 2–3</button><button class="btn" id="xAll">รีเซ็ตเกมทั้งหมด</button><button class="btn w" id="xOut">ออกจากระบบ</button></div></div>`;
+  <h3>ข้อมูล</h3><div class="jump"><button class="btn k" id="xXlsx">⬇️ ดาวน์โหลด Excel</button><button class="btn w" id="xScore">ล้างคะแนนเกม 2–3</button><button class="btn" id="xAll">รีเซ็ตเกมทั้งหมด</button><button class="btn w" id="xOut">ออกจากระบบ</button></div></div>`;
   drawVideos();$('#vChk').onclick=drawVideos;
   $('#pX').onclick=()=>{panelOpen=false;$('#pn').innerHTML=''};
   $('#sSave').onclick=async()=>{const j=await cmd({cmd:'settings',settings:{pairPoints:$('#sPair').value,bonusStart:$('#sBonus').value,wrongPenalty:$('#sPen').value,signCount:$('#sCount').value,signPoints:$('#sPts').value.split(',').map(x=>+x.trim())}});if(j&&j.ok)toast('บันทึกแล้ว')};
@@ -389,7 +389,26 @@ function openPanel(){
   $('#xScore').onclick=()=>{if(confirm('ล้างคะแนนเกม 2 และ 3 ทั้งหมด?'))cmd({cmd:'resetScores'})};
   $('#xAll').onclick=()=>{if(prompt('พิมพ์ RESET เพื่อรีเซ็ตเกมทั้งหมด (ผลเกม 1 และคะแนนจะหาย)')==='RESET'){cmd({cmd:'resetAll'});$('#pX').click()}};
   $('#xOut').onclick=()=>{panelOpen=false;logout()};
-  $('#xCsv').onclick=async()=>{const j=await rpc('mm_export',{p_token:token});if(j.error)return toast(j.error);const cols=['id','name','level','group','store','animal','gap','next','g2','g3','total'];const cell=c=>'"'+String(c??'').replace(/"/g,'""').replace(/^([=+\-@])/,"'$1")+'"';const u=URL.createObjectURL(new Blob(['\ufeff'+[cols.join(',')].concat(j.rows.map(r=>cols.map(c=>cell(r[c])).join(','))).join('\r\n')],{type:'text/csv;charset=utf-8'}));const l=document.createElement('a');l.href=u;l.download='manager-meeting-results.csv';l.click();URL.revokeObjectURL(u)};
+  $('#xXlsx').onclick=exportExcel;
+}
+async function exportExcel(){
+  let j;try{j=await rpc('mm_export',{p_token:token})}catch{return toast('ดาวน์โหลดไม่สำเร็จ ลองอีกครั้ง')}
+  if(j.error)return toast(j.error);
+  const th=a=>a?A[a].th:'',yn=v=>v===true?'ถูก':v===false?'ผิด':'',d=new Date(j.at),stamp=d.toLocaleString('th-TH'),rows=j.rows||[];
+  const sheets=[
+    {name:'สรุปรายคน',head:['รหัสพนักงาน','ชื่อ','ระดับ','กลุ่ม','สาขา/ตำแหน่ง','เข้าเกม','สัตว์','คะแนนเกม 2','คะแนนเกม 3','คะแนนรวม'],
+      rows:rows.map(r=>[r.id,r.name,r.level,r.group,r.store,r.joined?'เข้าแล้ว':'ยังไม่เข้า',th(r.animal),r.g2,r.g3,r.total])},
+    {name:'เกม 1 สัตว์',head:['รหัสพนักงาน','ชื่อ','ระดับ','สาขา/ตำแหน่ง','สัตว์','A กระทิง','B อินทรี','C หนู','D หมี','Gap ของฉันคือ','Shift ถัดไปฉันจะ'],
+      rows:rows.filter(r=>r.animal).map(r=>[r.id,r.name,r.level,r.store,th(r.animal),r.counts.bull,r.counts.eagle,r.counts.rat,r.counts.bear,r.gap,r.next])},
+    {name:'เกม 2 สั่งงาน',head:['ข้อ','สถานการณ์','รหัสพนักงาน','ชื่อ','ลำดับส่ง','กระทิง','อินทรี','หนู','หมี','ถูก (คู่)','คะแนนฐาน','โบนัส','คะแนนรวม'],
+      rows:j.g2.map(r=>[r.n,r.title,r.id,r.name,r.order,yn(r.pairs.bull),yn(r.pairs.eagle),yn(r.pairs.rat),yn(r.pairs.bear),r.correct,r.base,r.bonus,r.pts])},
+    {name:'เกม 3 พันธุ์แท้',head:['คนที่','Persona','รหัสพนักงาน','ชื่อ','ถูกที่ป้าย','ตอบผิด (ครั้ง)','ที่ตอบผิด','คะแนนฐาน','โบนัส','หักคะแนน','คะแนนรวม'],
+      rows:j.g3.map(r=>[r.n,r.persona,r.id,r.name,r.sign===null?'ไม่ถูก':r.sign+1,r.wrong,r.wrongNames,r.base,r.bonus,r.penalty,r.pts])},
+    {name:'สกอร์บอร์ด',head:['อันดับ','รหัสพนักงาน','ชื่อ','คะแนนเกม 2','คะแนนเกม 3','คะแนนรวม'],rows:j.board.map(r=>[r.rank,r.id,r.name,r.g2,r.g3,r.total])},
+    {name:'ข้อมูลไฟล์',head:['รายการ','ค่า'],rows:[['ดาวน์โหลดเมื่อ',stamp],['พนักงานทั้งหมด',rows.length],['เข้าเกมแล้ว',rows.filter(r=>r.joined).length],['ทำเกม 1 แล้ว',rows.filter(r=>r.animal).length]]},
+  ];
+  const u=URL.createObjectURL(MMXlsx(sheets)),l=document.createElement('a'),p=n=>String(n).padStart(2,'0');
+  l.href=u;l.download=`manager-meeting-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.xlsx`;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('ดาวน์โหลดแล้ว');
 }
 function drawVideos(){
   const el=$('#vids');if(!el)return;

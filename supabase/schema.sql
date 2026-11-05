@@ -408,8 +408,19 @@ declare b jsonb;
 begin
   if not exists(select 1 from game.sessions where token = p_token and is_admin) then return jsonb_build_object('error', 'forbidden'); end if;
   b := game.scoreboard();
-  return jsonb_build_object('rows', (select jsonb_agg(jsonb_build_object('id', u.id, 'name', u.name, 'level', u.level, 'group', u.grp, 'store', u.store, 'animal', g.animal, 'gap', g.promise_gap, 'next', g.promise_next, 'g2', e->'g2', 'g3', e->'g3', 'total', e->'total') order by u.level, u.id)
-    from game.roster u left join game.g1 g on g.key = u.key left join lateral (select x e from jsonb_array_elements(b) x where x->>'id' = u.id) z on true));
+  return jsonb_build_object(
+    'at', game.ms(clock_timestamp()),
+    'rows', (select jsonb_agg(jsonb_build_object('id', u.id, 'name', u.name, 'level', u.level, 'group', u.grp, 'store', u.store, 'joined', sn.key is not null, 'animal', g.animal, 'counts', g.counts, 'gap', g.promise_gap, 'next', g.promise_next, 'g2', e->'g2', 'g3', e->'g3', 'total', e->'total') order by u.level, u.id)
+      from game.roster u left join game.g1 g on g.key = u.key left join game.seen sn on sn.key = u.key left join lateral (select x e from jsonb_array_elements(b) x where x->>'id' = u.id) z on true),
+    'board', b,
+    'g2', (select coalesce(jsonb_agg(jsonb_build_object('n', i + 1, 'title', game.cfg('scenarios')->i->>'title', 'id', u.id, 'name', u.name, 'order', o.ord, 'correct', s.correct, 'base', s.base, 'bonus', s.bonus, 'pts', s.pts, 'pairs', o.pairs) order by i, o.ord), '[]')
+      from generate_series(0, game.g2n() - 1) i cross join lateral game.g2_score(i) s join game.roster u on u.key = s.key
+      cross join lateral (select (select count(*) from game.g2_sub x where x.round = i and x.seq <= sb.seq) ord,
+        (select jsonb_object_agg(c->>'a', sb.map->>(c->>'a') = c->>'id') from game.g2_round rd, jsonb_array_elements(rd.cards) c where rd.round = i) pairs
+        from game.g2_sub sb where sb.round = i and sb.key = s.key) o),
+    'g3', (select coalesce(jsonb_agg(jsonb_build_object('n', i + 1, 'persona', game.cfg('personas')->i->>'name', 'id', u.id, 'name', u.name, 'sign', s.sign, 'wrong', s.wrong, 'wrongNames', w.names, 'base', s.base, 'bonus', s.bonus, 'penalty', s.penalty, 'pts', s.pts) order by i, s.sign nulls last, s.bonus desc), '[]')
+      from generate_series(0, game.g3n() - 1) i cross join lateral game.g3_score(i) s join game.roster u on u.key = s.key
+      cross join lateral (select (select string_agg(p->>'name', ', ') from jsonb_array_elements(game.cfg('personas')) p where a.wrong ? (p->>'id')) names from game.g3_ans a where a.round = i and a.key = s.key) w));
 end $$;
 
 revoke all on all functions in schema game from public, anon, authenticated;
