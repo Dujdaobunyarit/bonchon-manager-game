@@ -246,3 +246,24 @@ body.bo{background:var(--paper);overflow:auto}
 .hgroup{background:var(--ink);color:#fff;border-radius:20px;text-align:center;padding:26px 8px}.hgroup:nth-child(odd){background:var(--red)}
 .hgroup b{display:block;font-size:92px;line-height:1;font-weight:800;color:var(--gold)}.hgroup span{display:block;font-size:40px;font-weight:700}.hgroup small{font-size:24px}
 .watch{background:var(--red);color:#fff;border-radius:18px;padding:18px;font-weight:700;font-size:clamp(20px,5vw,30px);text-align:center;width:100%}
+
+/* game 1: forest */
+body.forest{background:#7fd093}
+body.forest:before{content:"";position:fixed;inset:0;background:url(img/forest.svg) center bottom/cover no-repeat;z-index:0}
+body.forest .shell:before,#stage.forest .scr:before{content:"";position:absolute;width:14px;height:9px;border-radius:50%;background:#fff6a8;box-shadow:0 0 12px 5px #fff6a899;left:18%;top:32%;animation:drift 11s ease-in-out infinite;pointer-events:none}
+body.forest .shell:after,#stage.forest .scr:after{content:"";position:absolute;width:12px;height:12px;background:#ffb46b;border-radius:0 80% 0 80%;left:72%;top:-3%;animation:leaffall 9s linear infinite;pointer-events:none}
+@keyframes drift{0%,100%{transform:translate(0,0)}25%{transform:translate(90px,-40px)}50%{transform:translate(180px,20px)}75%{transform:translate(70px,60px)}}
+@keyframes leaffall{to{transform:translate(-120px,104vh) rotate(720deg)}}
+body.forest .shell{background:transparent;position:relative;z-index:1;overflow:hidden}
+body.forest .main{background:#fffffff2;border-radius:20px;margin:clamp(16px,9dvh,90px) auto 40px;position:relative;z-index:2;width:calc(100% - 24px);max-width:1076px;box-shadow:0 10px 34px #0b4a3f55;flex:0 1 auto}
+body.forest .center{min-height:0}
+body.forest .sticker{animation:wiggle 1.4s ease-in-out infinite}
+#stage.forest{background:#7fd093 url(img/forest.svg) center bottom/100% 100% no-repeat}
+#stage.forest .fhead{background:#ffffffe8;border-radius:22px;padding:14px 30px;align-self:center;text-align:center;box-shadow:0 8px 28px #0b4a3f44;margin-top:6px}
+#stage.forest .fhead .t2{font-size:58px;margin:4px 0}
+#stage.forest .fhead .t3{margin:0}
+#stage.forest .dist{align-items:end}
+#stage.forest .dcol{background:#ffffffde;border-radius:22px;padding:14px 10px;justify-content:flex-start;box-shadow:0 8px 28px #0b4a3f44}
+#stage.forest .dcol img{height:240px}
+#stage.forest .brand{background:#fffc;border-radius:8px;padding:2px 8px}
+.sway{animation:sway 2.4s ease-in-out infinite;transform-origin:50% 100%}

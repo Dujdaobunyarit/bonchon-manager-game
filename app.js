@@ -109,10 +109,13 @@ function keyPlayer(){
   return [V.phase,V.round,V.board,V.recapTab,m.g1||'',m.submitted?1:0,x.signs||0,g.choice||'',m.group?m.group.no:''].join('|');
 }
 function renderPlayer(){
-  document.body.className='';
+  const inForest=V.phase==='g1'||V.phase==='g1_end';
+  document.body.className=inForest?'forest':'';
+  MMAudio.scene(inForest?'forest':'none');
   const m=V.me,key=keyPlayer();
   if(!$('.shell'))app.innerHTML=`<div class="shell"><div class="top" id="top"></div><div class="main" id="main"></div></div><div id="ov"></div>`;
-  $('#top').innerHTML=`${m.g1?`<img src="img/${m.g1}.png" alt="${A[m.g1].th}">`:''}<div class="nm">${esc(m.name)}<small>${m.group?esc(groupLabel(m.group))+' · ':''}${esc(m.store)}</small></div>${m.score?`<span class="pts">${m.score.total} pt</span>`:''}<button class="out" id="out">ออก</button>`;
+  $('#top').innerHTML=`${m.g1?`<img src="img/${m.g1}.png" alt="${A[m.g1].th}">`:''}<div class="nm">${esc(m.name)}<small>${m.group?esc(groupLabel(m.group))+' · ':''}${esc(m.store)}</small></div>${m.score?`<span class="pts">${m.score.total} pt</span>`:''}${inForest?`<button class="out snd" id="snd" aria-label="เปิดปิดเสียงป่า">${MMAudio.musicOn?'🔊':'🔇'}</button>`:''}<button class="out" id="out">ออก</button>`;
+  if($('#snd'))$('#snd').onclick=()=>{MMAudio.music(!MMAudio.musicOn);renderPlayer()};
   $('#out').onclick=()=>{if(confirm('ออกจากเกม?'))logout()};
   setOnce($('#ov'),V.board&&V.scoreboard?`<div class="overlay">${boardHTML()}</div>`:'');
   patchPlayer();
@@ -188,7 +191,7 @@ function showResult(m,a){
   <div class="traits"><div class="card"><b style="color:var(--good)">จุดแข็งที่เก็บไว้</b><br>${d.strength}</div><div class="card"><b style="color:var(--red)">Gap ที่ต้องปิด</b><br>${d.gap}</div><div class="card"><b>ยืมจุดแข็งจาก</b><br>${d.borrow}</div><div class="card"><b>GEL ที่สมบูรณ์แบบ</b><br>${d.ideal}</div><div class="card"><b>พูดกับคุณแบบนี้ได้ผลที่สุด</b><br>${d.talk}</div>
   <form class="card" id="gp"><b style="color:var(--red)">GEL Promise</b><label for="pg">Gap ของฉันคือ</label><input id="pg" maxlength="300" value="${esc(p.gap)}"><label for="pn">Shift ถัดไปฉันจะ</label><input id="pn" maxlength="300" value="${esc(p.next)}"><button class="btn k full">บันทึก</button></form></div></div>`;
   $('#gp',m).onsubmit=async e=>{e.preventDefault();const j=await act({type:'g1promise',gap:$('#pg',m).value,next:$('#pn',m).value});toast(j.error||'บันทึกแล้ว')};
-  confetti();
+  MMAudio.animal(a);confetti();
 }
 async function quiz(m){
   const ck='q:'+V.me.id; let S; try{S=JSON.parse(store.get(ck))}catch{} S=S||{a:[]};
@@ -283,7 +286,7 @@ function g3Player(m){
 /* ---------- projector / admin ---------- */
 const beep=()=>MMAudio.tick();
 const fanfare=()=>MMAudio.fanfare();
-document.addEventListener('pointerdown',()=>{if(V&&V.admin&&location.hash!=='#backoffice')MMAudio.unlock()},{capture:true});
+document.addEventListener('pointerdown',()=>{if(V&&location.hash!=='#backoffice'&&(V.admin||V.phase==='g1'||V.phase==='g1_end'))MMAudio.unlock()},{capture:true});
 function fit(){const s=$('#stage');if(!s)return;const k=Math.min(innerWidth/1920,innerHeight/1080);s.style.transform=`scale(${k}) translate(-50%,-50%)`}
 addEventListener('resize',fit);
 let panelOpen=false,barHidden=false;
@@ -291,7 +294,7 @@ function keyHost(){const g=V.g3||{};return [V.phase,V.round,V.board,V.recapTab,g
 function renderHost(){
   document.body.className='host';
   if(!$('#stage')){app.innerHTML=`<div id="stage"><div class="brand">TEAM <i>BONCHON</i></div><div id="scr"></div><div id="ovl"></div><div class="bar" id="bar"></div><div id="pn"></div></div>`;fit();}
-  $('#stage').classList.toggle('nobar',barHidden);$('#stage').classList.toggle('deco',['idle','lobby','groups','g2_intro','g3_intro','g1'].includes(V.phase));
+  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['idle','lobby','groups','g2_intro','g3_intro'].includes(V.phase));MMAudio.scene(inForest?'forest':'music');
   drawBar();
   patchHost();
   const key=keyHost();
@@ -342,8 +345,8 @@ const HV={
     try{const q=qrcode(0,'M');q.addData(url);q.make();svg=q.createSvgTag({scalable:true,margin:2})}catch{}
     s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">สแกนเข้าเกม<em>เลย!</em></h1><div class="lobby"><div class="qr">${svg}<div class="url">${esc(url)}</div><div style="color:var(--mute);font-size:22px">ล็อกอินด้วยรหัสพนักงาน</div></div><div style="display:flex;flex-direction:column;min-height:0"><div><span class="big" data-b="joined">0</span> <span class="t3">/ ${V.totalUsers} คน</span></div><div class="chips" id="chips"></div></div></div></div>`;
   },
-  g1(s){s.innerHTML=`<div class="scr"><span class="tag" style="font-size:30px;align-self:flex-start;margin-top:14px">เกมที่ 1</span><h1 class="t2 brush" style="margin-top:8px">เราคือสัตว์<em>ประเภทไหน?</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800;font-size:72px">0</span> / ${V.totalUsers} คน ทำเสร็จแล้ว</p>${dist()}</div>`},
-  g1_end(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:16px">ทีมเราเป็น<em>แบบนี้!</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800">0</span> คน ได้รับสติ๊กเกอร์ของตัวเอง</p>${dist()}</div>`;fanfare();confetti(90)},
+  g1(s){s.innerHTML=`<div class="scr"><div class="fhead"><span class="tag" style="font-size:30px">เกมที่ 1</span><h1 class="t2 brush">เราคือสัตว์<em>ประเภทไหน?</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800;font-size:64px">0</span> / ${V.totalUsers} คน ทำเสร็จแล้ว</p></div>${dist()}</div>`},
+  g1_end(s){s.innerHTML=`<div class="scr"><div class="fhead"><h1 class="t2 brush">ทีมเราเป็น<em>แบบนี้!</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800">0</span> คน ได้รับสติ๊กเกอร์ของตัวเอง</p></div>${dist()}</div>`;fanfare();confetti(90)},
   groups(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">แบ่ง<em>กลุ่ม</em> ไปรวมตัวกับ AC ของคุณ</h1><div class="hgroups">${(V.groups||[]).map(g=>`<div class="hgroup"><b>${g.no}</b><span>AC ${esc(g.nick)}</span><small>${g.members} คน</small></div>`).join('')}</div></div>`},
   g2_intro(s){introHost(s,'เกมที่ 2','สั่งงานให้<em>ตรงประเภท</em>',['AC ของแต่ละกลุ่มจับคู่คำสั่งให้ตรงกับสัตว์ทั้ง 4 ตัว','ถูกครบ <b>100 pt</b> ถูกครึ่งเดียว <b>50 pt</b>','กลุ่มแรกที่ถูกครบได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น','คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า',`ทั้งหมด <b>${V.g2N} สถานการณ์</b> ลูกทีมร่วมลุ้นที่จอหลักของ AC`])},
   g2_motion(s){
@@ -384,7 +387,7 @@ const HV={
 };
 const videoUrl=n=>`${CFG.supabaseUrl}/storage/v1/object/public/motions/s${n}.mp4`;
 const hasVideo=n=>fetch(videoUrl(n),{method:'HEAD',cache:'no-store'}).then(r=>r.ok).catch(()=>false);
-function dist(){return `<div class="dist">${AK.map(a=>`<div class="dcol"><img class="${V.phase==='g1_end'?'a-'+a:''}" src="img/${a}.png" alt=""><div class="n" data-b="n-${a}">0</div><div class="l">${A[a].th}</div><small>${A[a].strength}</small></div>`).join('')}</div>`}
+function dist(){return `<div class="dist">${AK.map(a=>`<div class="dcol"><img class="${V.phase==='g1_end'?'a-'+a:'sway'}" src="img/${a}.png" alt=""><div class="n" data-b="n-${a}">0</div><div class="l">${A[a].th}</div><small>${A[a].strength}</small></div>`).join('')}</div>`}
 
 /* settings panel */
 function openPanel(){

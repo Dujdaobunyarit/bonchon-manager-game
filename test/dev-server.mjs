@@ -10,7 +10,7 @@ await db.exec(read('supabase/schema.sql')); await db.exec(read('private/seed.sql
   const mg = js('data/managers.json'), row = u => ({ id: u.id, name: u.name, store: u.store, code: u.store.split('-')[0].trim(), managerId: mg[u.id] || '' }), R0 = js('data/roster.json');
   for (const g of ['equity', 'franchise']) await q('mm_import', A, g, R0.filter(u => u.group === g).map(row), false); }
 const ARGS = { mm_login: ['p_id', 'p_password'], mm_view: ['p_token'], mm_assessment: ['p_token'], mm_act: ['p_token', 'p_body'], mm_admin: ['p_token', 'p_body'], mm_export: ['p_token'], mm_monitor: ['p_token'], mm_is_admin: ['p_token'], mm_set_groups: ['p_token', 'p_groups'], mm_import: ['p_token', 'p_grp', 'p_rows', 'p_dry'] };
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg' };
 http.createServer((req, res) => {
   const p = new URL(req.url, 'http://x').pathname;
   const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' };
