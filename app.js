@@ -318,9 +318,10 @@ function renderHost(){
   patchHost();
   const key=keyHost();
   if(key!==lastKey){const old=lastKey;lastKey=key;if(old&&V.phase!=='learn'&&!(V.phase==='g2_reveal'&&old.startsWith('g2_reveal')))MMAudio.transition();if(V.phase!=='g2_motion')MMAudio.duck(false);
-    (HV[V.phase]||HV.idle)($('#scr'),old);patchHost();
+    (HV[V.phase]||HV.idle)($('#scr'),old);patchHost();boardFx();
   }
-  setOnce($('#ovl'),V.board&&V.scoreboard?`<div class="hboard-ov"><h2 class="t2 brush">สกอร์<em>บอร์ด</em></h2>${hBoard()}</div>`:'');
+  setOnce($('#ovl'),V.board&&V.scoreboard?`<div class="hboard-ov sb">${sbPage('สกอร์บอร์ด')}</div>`:'');
+  $('#stage').classList.toggle('sbp',!!(V.board&&V.scoreboard)||['g2_scores','g2_end','g3_scores'].includes(V.phase));boardFx();
   
 }
 function drawBar(){
@@ -356,7 +357,18 @@ function patchHost(){
   const chips=$('#chips');
   if(chips){const have=chips.children.length;const list=V.admin.joined;for(let i=have;i<list.length;i++){const d=document.createElement('span');d.className='chip '+(list[i].l==='L4'?'l4':'');d.textContent=list[i].n;chips.prepend(d)}}
 }
-function hBoard(){return `<div class="hboard" style="grid-template-rows:repeat(${Math.max(1,(V.scoreboard||[]).length)},1fr)">${(V.scoreboard||[]).map((r,i)=>`<div class="hrow ${i===0&&r.total>0?'top1':''}" style="animation-delay:${i*.06}s"><span class="r">${r.rank}</span><span>${esc(rowLabel(r))}</span><span class="g">${r.last?'+'+r.last:''}</span><span class="t">${r.total}</span></div>`).join('')}</div>`}
+function hBoard(){return `<div class="hboard" style="grid-template-rows:repeat(${Math.max(1,(V.scoreboard||[]).length)},1fr)">${(V.scoreboard||[]).map((r,i)=>`<div class="hrow ${i===0&&r.total>0?'top1':''}" data-id="${esc(r.id)}" data-t="${r.total}" style="animation-delay:${.35+i*.06}s"><span class="r">${r.rank}</span><span>${esc(rowLabel(r))}</span><span class="g">${r.last?'+'+r.last:''}</span><span class="t">${r.total}</span></div>`).join('')}</div>`}
+const SB_ART=`<div class="sb-art"><img class="sb-base" src="img/board/base.svg" alt=""><img class="sb-cone c1" src="img/board/cone.svg" alt=""><img class="sb-cone c2" src="img/board/cone.svg" alt=""><img class="sb-cone c3" src="img/board/cone.svg" alt=""><img class="sb-base" src="img/board/panel.svg" alt=""><img class="sb-logo" src="img/frame/logo.svg" alt="Bonchon"><img class="sb-title" src="img/board/title.svg" alt="SCOREBOARD"><img class="sb-dr d1" src="img/frame/drum.svg" alt=""><img class="sb-dr d2" src="img/frame/drum.svg" alt=""><img class="sb-sp s1" src="img/board/spark.svg" alt=""><img class="sb-sp s2" src="img/board/spark.svg" alt=""><img class="sb-sp s3" src="img/board/spark.svg" alt=""><img class="sb-sp s4" src="img/board/spark.svg" alt=""><img class="sb-my" src="img/board/marks-y.svg" alt=""><img class="sb-clip" src="img/board/chick-clip.svg" alt=""><img class="sb-mw" src="img/board/marks-w.svg" alt=""><img class="sb-pop" src="img/board/chick-pop.svg" alt=""><img class="sb-buck" src="img/board/bucket.svg" alt=""></div>`;
+const sbPage=t=>`${SB_ART}<div class="sb-rib">${t}</div><div class="sb-rows">${hBoard()}</div>`;
+let boardPrev={};
+function boardFx(){ // rows move from their old place and scores count up
+  const box=document.querySelector('.sb-rows .hboard');if(!box||box.dataset.fx)return;box.dataset.fx='1';
+  const rows=[...box.children],h=rows[0]?rows[0].getBoundingClientRect().height+8:0,sc=$('#stage').getBoundingClientRect().width/1920||1,step=h/sc,next={};
+  rows.forEach((e,i)=>{const id=e.dataset.id,t=+e.dataset.t,p=boardPrev[id],n=e.querySelector('.t');next[id]={i,t};
+    if(p&&p.i!==i){e.style.setProperty('--from',(p.i-i)*step+'px');e.classList.add('moved')}
+    if(p&&p.t!==t&&n){const a=p.t,t0=performance.now()+700;n.textContent=a;e.classList.add('gain');const run=x=>{const k=Math.min(1,Math.max(0,(x-t0)/1100)),v=Math.round(a+(t-a)*(1-(1-k)**3));if(n.isConnected){n.textContent=v;if(k<1)requestAnimationFrame(run)}};requestAnimationFrame(run)}});
+  boardPrev=next;
+}
 function introHost(s,tag,t,lines,img){s.innerHTML=`<div class="scr c"><span class="tag" style="font-size:40px">${tag}</span><h1 class="t1 brush" style="margin:16px 0 26px">${t}</h1><div style="display:flex;gap:30px;align-items:center;font-size:36px;text-align:left">${img?`<img src="${img}" alt="" style="height:440px;border-radius:20px">`:''}<div class="rules" style="width:1100px">${lines.map(l=>`<div>${l}</div>`).join('')}</div></div></div>`}
 const HV={
   idle(s){s.innerHTML=`<div class="scr fr">${FRAME}<div class="fbox fidle"><span class="tag k">TEAM BONCHON</span><h1 class="t1 brush">Manager <em>Meeting</em> Game</h1><p class="t3">กด Launch เมื่อพร้อมให้ทุกคนเข้าเกม</p></div></div>`},
@@ -392,8 +404,8 @@ const HV={
     s.querySelectorAll('.lcard:not(.open)').forEach(e=>{e.onclick=()=>{if(+e.dataset.rc===(V.recapOpen??4))cmd({cmd:'next'})}});
     if(fresh>=0){MMAudio.open();setTimeout(()=>MMAudio.animal(list[fresh].a),350);setTimeout(()=>w?MMAudio.bad():MMAudio.good(),1250);if(fresh===3&&!w)setTimeout(()=>{fanfare();confetti(90)},1500)}
   },
-  g2_scores(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">สกอร์บอร์ด <em>หลังสถานการณ์ที่ ${V.scenario.n}</em></h1>${hBoard()}</div>`},
-  g2_end(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">จบ<em>เกมที่ 2</em></h1>${hBoard()}</div>`;fanfare()},
+  g2_scores(s){s.innerHTML=`<div class="scr sb">${sbPage(`สกอร์บอร์ด หลังสถานการณ์ที่ ${V.scenario.n}`)}</div>`},
+  g2_end(s){s.innerHTML=`<div class="scr sb">${sbPage('จบเกมที่ 2')}</div>`;fanfare()},
   g3_intro(s){s.innerHTML=`<div class="scr cover"><div class="c-left"><i class="br b1"></i><i class="br b2"></i><i class="br b3"></i><div class="c-title"><p class="c-no">เกมที่ 3</p><h1>แฟนพันธุ์แท้ ลูกค้า</h1><hr><ul><li>เปิดป้ายทีละแผ่น ยิ่งน้อยยิ่งได้เยอะ <b>100 · 75 · 50 · 25 pt</b></li><li>กลุ่มละหนึ่งคำตอบ ล็อกทันที เฉลยพร้อมกัน</li><li>กลุ่มแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b></li><li>คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ</li></ul></div></div><div class="c-right"><i class="sl s1"></i><i class="sl s2"></i>${[[2,12,16],[1,30,6],[5,50,8],[3,72,15],[4,14,66],[7,38,78],[6,66,67]].map(([n,x,y],i)=>`<img class="cf" src="img/face${n}.png" alt="" style="left:${x}%;top:${y}%;animation-delay:${i*.09}s,${-i*.7}s">`).join('')}<div class="c-mid">${neon('7','lg')}<p class="persona-t">CUSTOMER<br>PERSONA</p></div></div></div>`},
   g3_board(s){
     const g=V.g3,isNew=seenSigns>=0&&g.signs>seenSigns?g.signs-1:-1;seenSigns=g.signs;if(isNew>=0)MMAudio.open();
@@ -404,7 +416,7 @@ const HV={
     s.innerHTML=`<div class="scr storelay"><div class="st-panel"><h1 class="t1 brush" style="font-size:88px"><em>${esc(p.name)}</em></h1><p class="tag" style="font-size:32px;align-self:flex-start;margin:6px 0 14px">${esc(p.tag)}</p><div class="hsigns" style="gap:10px">${g.clues.map(c=>`<div class="hsign" style="min-height:66px;font-size:28px"><span>${esc(c)}</span></div>`).join('')}</div><p class="t3" style="margin:12px 0 0;font-size:30px">ตอบถูก ${g.correctCount}/${V.totalPlayers} กลุ่ม</p></div><div class="st-side"><div class="st-pic"><div class="spin"></div><img class="pic" src="img/${esc(p.img)}" alt=""></div></div></div>`;
     fanfare();
   },
-  g3_scores(s){s.innerHTML=`<div class="scr storeboard"><h1 class="t2 brush">สกอร์บอร์ด <em>หลังคนที่ ${V.round+1}</em></h1>${hBoard()}</div>`},
+  g3_scores(s){s.innerHTML=`<div class="scr sb">${sbPage(`สกอร์บอร์ด หลังคนที่ ${V.round+1}`)}</div>`},
   final(s){
     const b=V.scoreboard||[],o=[b[1],b[0],b[2]],cl=['p2','p1','p3'],md=['🥈','🥇','🥉'];
     s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px;text-align:center">สุดยอด<em>แฟนพันธุ์แท้!</em></h1><div class="podium">${o.map((r,i)=>r?`<div class="pod ${cl[i]}"><div class="m">${md[i]}</div><div class="nm">${esc(rowLabel(r))}</div><div class="sc">${r.total}</div></div>`:'<div></div>').join('')}</div></div>`;

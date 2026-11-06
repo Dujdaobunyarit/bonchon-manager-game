@@ -512,3 +512,41 @@ body.store .center{min-height:0}
   .login-card input{font-size:clamp(17px,calc(var(--w)*.0135),24px);height:clamp(44px,calc(var(--w)*.034),62px)}
   .login-card .btn{font-size:clamp(18px,calc(var(--w)*.015),28px)}
 }
+
+/* scoreboard scene */
+#stage.sbp .brand{display:none}
+.scr.sb,.hboard-ov.sb{padding:0;background:#120908;overflow:hidden}
+.sb-art{position:absolute;inset:0;overflow:hidden}
+.sb-art img{position:absolute;display:block;max-width:none}
+.sb-base{inset:0;width:100%;height:100%}
+.sb-cone{width:14.4%;height:35%;top:10%;animation:sbflick 3.7s steps(5) infinite}.sb-cone.c1{left:.9%;top:21%}.sb-cone.c2{left:11.5%;top:9%;animation-delay:-1.3s}.sb-cone.c3{left:73.6%;top:9%;animation-delay:-2.4s}
+.sb-logo{left:42.6%;top:1.8%;width:14.6%;animation:sbdrop .6s cubic-bezier(.3,1.5,.5,1) both}
+.sb-title{left:30%;top:8.2%;width:39.6%;height:11.4%;animation:sbdrop .7s .08s cubic-bezier(.3,1.6,.5,1) both,sbfloat 2.6s .8s ease-in-out infinite}
+.sb-dr{width:5.4%;height:11.2%;top:10.6%}.sb-dr.d1{left:24%;transform-origin:18% 84%;animation:frock 1.24s steps(4) infinite}.sb-dr.d2{left:69.8%;transform-origin:18% 84%;animation:frock 1.24s steps(4) infinite -.62s}
+.sb-sp{width:2%;height:3.8%;animation:ftw 1.6s steps(3) infinite}.sb-sp.s1{left:21.6%;top:16.6%}.sb-sp.s2{left:27%;top:6.5%;animation-delay:-.4s}.sb-sp.s3{left:70%;top:7%;animation-delay:-.8s}.sb-sp.s4{left:75.6%;top:16%;animation-delay:-1.2s}
+.sb-clip{left:1.2%;top:74%;width:10.6%;height:23.4%;animation:fbob .62s steps(2) infinite}
+.sb-my{left:6.6%;top:69.2%;width:3.2%;height:6.2%;animation:fblink 1.24s steps(2) infinite}
+.sb-mw{left:88.8%;top:70%;width:3.2%;height:6.2%;animation:fblink 1.24s steps(2) infinite -.62s}
+.sb-pop{left:89%;top:74.5%;width:9.4%;height:13%;transform-origin:50% 100%;animation:sbpop 1.24s steps(3) infinite}
+.sb-buck{left:88.6%;top:84%;width:10%;height:12.4%}
+.sb-rib{position:absolute;z-index:3;left:50%;top:19%;transform:translateX(-50%);white-space:nowrap;background:linear-gradient(#e8232a,#c8141a);color:#fff;font-weight:800;font-size:40px;line-height:1.2;padding:9px 56px 11px;border-radius:20px;border:4px solid #14090a;box-shadow:0 5px 0 #8f0d11;animation:sbrib .5s .2s cubic-bezier(.3,1.6,.5,1) both}
+.sb-rows{position:absolute;z-index:3;left:15%;right:15.8%;top:27.6%;bottom:8.6%;display:flex}
+.sb-rows .hboard{flex:1;gap:7px;margin:0}
+.sb .hrow{grid-template-columns:90px 1fr 130px 130px;background:#fff;border:3px solid #dcd4cf;border-radius:18px;font-size:33px;font-weight:600;padding:0 28px;animation:sbrow .42s cubic-bezier(.2,1.2,.4,1) both}
+.sb .hrow .r{font-weight:800;text-align:left}.sb .hrow .t{font-size:36px}
+.sb .hrow.top1{background:linear-gradient(90deg,#ffe28a,#ffc42e);border-color:#e0a100;box-shadow:0 0 0 0 #ffc42e99;animation:sbrow .42s cubic-bezier(.2,1.2,.4,1) both,sbglow 1.8s 1s ease-in-out infinite}
+.sb .hrow.moved{animation:sbmove .85s .3s cubic-bezier(.3,1.1,.4,1) both}
+.sb .hrow.gain .t{color:var(--good)}
+#stage.sbp .bar{background:#16100f}
+#stage.sbp .bar .ghost{background:#2b2422;border:2px solid #4a403c;box-shadow:0 3px 0 #000}
+#stage.sbp #bBoard{background:var(--red);border-color:#ff5a55;color:#fff}
+@keyframes sbflick{0%,100%{opacity:1}40%{opacity:.88}60%{opacity:.72}70%{opacity:.95}}
+@keyframes sbdrop{from{transform:translateY(-140%) scale(.8);opacity:0}to{transform:none;opacity:1}}
+@keyframes sbfloat{0%,100%{translate:0 0}50%{translate:0 -6px}}
+@keyframes sbrib{from{transform:translateX(-50%) scaleX(.2);opacity:0}to{transform:translateX(-50%) scaleX(1);opacity:1}}
+@keyframes sbrow{from{transform:translateX(-46px);opacity:0}to{transform:none;opacity:1}}
+@keyframes sbmove{from{transform:translateY(var(--from))}to{transform:none}}
+@keyframes sbpop{0%{transform:translateY(16%) rotate(-2deg)}50%{transform:translateY(0) rotate(2deg)}100%{transform:translateY(16%) rotate(-2deg)}}
+@keyframes sbglow{0%,100%{box-shadow:0 0 0 0 #ffc42e99}50%{box-shadow:0 0 22px 5px #ffc42e99}}
+#stage.sbp .bar .ghost.on{background:var(--gold);color:var(--ink);border-color:#c79a12}
+#stage.sbp .bar #bBoard{background:var(--red);border-color:#ff5a55;color:#fff}
