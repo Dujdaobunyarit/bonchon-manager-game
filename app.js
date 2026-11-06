@@ -42,10 +42,7 @@ function confetti(n=70){
 /* ---------- login ---------- */
 function showLogin(msg){
   document.body.className='';
-  app.innerHTML=`<div class="login"><form class="login-card" id="f" autocomplete="off">
-    <div class="critters">${AK.map(a=>`<img src="img/${a}.png" alt="">`).join('')}</div>
-    <span class="tag k">TEAM BONCHON</span>
-    <h1 class="brush">Manager <em>Meeting</em> Game</h1>
+  app.innerHTML=`<div class="login"><div class="lframe"><img class="lgif" src="img/frame.gif" alt=""><div class="lban"><span class="tag k">TEAM BONCHON</span><h1 class="brush">Manager <em>Meeting</em> Game</h1></div></div><form class="login-card" id="f" autocomplete="off">
     <p>เข้าเล่นด้วยรหัสพนักงานของคุณ</p>
     <label for="id">รหัสพนักงาน</label><input id="id" autocapitalize="off" autocomplete="username" required>
     <label for="pw">รหัสผ่าน</label><input id="pw" type="password" autocomplete="current-password" required>
@@ -315,7 +312,7 @@ function keyHost(){const g=V.g3||{};return [V.phase,V.round,V.board,V.recapTab,V
 function renderHost(){
   document.body.className='host';
   if(!$('#stage')){app.innerHTML=`<div id="stage"><div class="brand">TEAM <i>BONCHON</i></div><div id="scr"></div><div id="ovl"></div><div class="bar" id="bar"></div><div id="pn"></div></div>`;fit();}
-  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn'||V.phase==='g2_reveal';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['idle','lobby','groups','g2_intro','g3_intro'].includes(V.phase));MMAudio.scene(V.phase==='learn'?'forest':inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');$('#stage').classList.toggle('rcs',V.phase==='g2_reveal');
+  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn'||V.phase==='g2_reveal';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['groups','g2_intro','g3_intro'].includes(V.phase));$('#stage').classList.toggle('frm',['idle','lobby'].includes(V.phase));MMAudio.scene(V.phase==='learn'?'forest':inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');$('#stage').classList.toggle('rcs',V.phase==='g2_reveal');
   drawBar();
   patchHost();
   const key=keyHost();
@@ -356,16 +353,16 @@ function patchHost(){
   if(V.g1Done!=null){set('g1done',V.g1Done);for(const a of AK)set('n-'+a,V.g1Counts[a])}
   if(V.g3){set('answered',V.g3.answered)}
   const chips=$('#chips');
-  if(chips){const have=chips.children.length;const list=V.admin.joined;for(let i=have;i<list.length;i++){const d=document.createElement('span');d.className='chip '+(list[i].l==='L4'?'l4':'');d.textContent=list[i].n;chips.appendChild(d)}}
+  if(chips){const have=chips.children.length;const list=V.admin.joined;for(let i=have;i<list.length;i++){const d=document.createElement('span');d.className='chip '+(list[i].l==='L4'?'l4':'');d.textContent=list[i].n;chips.prepend(d)}}
 }
 function hBoard(){return `<div class="hboard" style="grid-template-rows:repeat(${Math.max(1,(V.scoreboard||[]).length)},1fr)">${(V.scoreboard||[]).map((r,i)=>`<div class="hrow ${i===0&&r.total>0?'top1':''}" style="animation-delay:${i*.06}s"><span class="r">${r.rank}</span><span>${esc(rowLabel(r))}</span><span class="g">${r.last?'+'+r.last:''}</span><span class="t">${r.total}</span></div>`).join('')}</div>`}
 function introHost(s,tag,t,lines,img){s.innerHTML=`<div class="scr c"><span class="tag" style="font-size:40px">${tag}</span><h1 class="t1 brush" style="margin:16px 0 26px">${t}</h1><div style="display:flex;gap:30px;align-items:center;font-size:36px;text-align:left">${img?`<img src="${img}" alt="" style="height:440px;border-radius:20px">`:''}<div class="rules" style="width:1100px">${lines.map(l=>`<div>${l}</div>`).join('')}</div></div></div>`}
 const HV={
-  idle(s){s.innerHTML=`<div class="scr c"><div class="critters" style="width:800px;margin-bottom:10px">${AK.map(a=>`<img src="img/${a}.png" alt="">`).join('')}</div><h1 class="t1 brush">Manager <em>Meeting</em> Game</h1><p class="t3" style="color:var(--mute);margin-top:12px">กด Launch เมื่อพร้อมให้ทุกคนเข้าเกม</p></div>`},
+  idle(s){s.innerHTML=`<div class="scr fr"><div class="fbox fidle"><span class="tag k">TEAM BONCHON</span><h1 class="t1 brush">Manager <em>Meeting</em> Game</h1><p class="t3">กด Launch เมื่อพร้อมให้ทุกคนเข้าเกม</p></div></div>`},
   lobby(s){
     const url=location.origin+location.pathname;let svg='';
     try{const q=qrcode(0,'M');q.addData(url);q.make();svg=q.createSvgTag({scalable:true,margin:2})}catch{}
-    s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">สแกนเข้าเกม<em>เลย!</em></h1><div class="lobby"><div class="qr">${svg}<div class="url">${esc(url)}</div><div style="color:var(--mute);font-size:22px">ล็อกอินด้วยรหัสพนักงาน</div></div><div style="display:flex;flex-direction:column;min-height:0"><div><span class="big" data-b="joined">0</span> <span class="t3">/ ${V.totalUsers} คน</span></div><div class="chips" id="chips"></div></div></div></div>`;
+    s.innerHTML=`<div class="scr fr"><div class="fbox flobby"><h1 class="t2 brush">สแกนเข้าเกม<em>เลย!</em></h1><div class="fgrid"><div class="qr">${svg}<div class="qcap">ล็อกอินด้วยรหัสพนักงาน</div></div><div class="fside"><div class="fcount"><span class="big" data-b="joined">0</span><span class="t3">/ ${V.totalUsers} คน</span></div><div class="url">${esc(url)}</div><div class="chips" id="chips"></div></div></div></div></div>`;
   },
   g1(s){s.innerHTML=`<div class="scr"><div class="fhead"><span class="tag" style="font-size:30px">เกมที่ 1</span><h1 class="t2 brush">เราคือสัตว์<em>ประเภทไหน?</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800;font-size:64px">0</span> / ${V.totalUsers} คน ทำเสร็จแล้ว</p></div>${dist()}</div>`},
   g1_end(s){s.innerHTML=`<div class="scr"><div class="fhead"><h1 class="t2 brush">ทีมเราเป็น<em>แบบนี้!</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800">0</span> คน ได้รับสติ๊กเกอร์ของตัวเอง</p></div>${dist()}</div>`;fanfare();confetti(90)},
