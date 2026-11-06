@@ -13,6 +13,7 @@ const LEARN = [
 ];
 const learnCard=(l,i,open,fresh)=>`<div class="lcard ${open?'open':''} ${fresh?'fresh':''}" style="--d:${i*.4}s"><div class="flipper"><div class="face fback"><b>${l.dir}</b><span>?</span><small>${l.en}</small></div><div class="face front"><i class="dirb">${l.dir}</i><div class="stagef"><span class="glow"></span><img class="a-3d" src="img/${l.a}.png" alt="${l.th}"><span class="shadow"></span></div><h3>${l.th}<small>${l.en}</small></h3><ul>${l.tips.map((t,k)=>`<li style="--k:${k}"><em>${t[0]}</em>${t[1]}</li>`).join('')}</ul></div></div></div>`;
 let learnSeen=-1;
+const FRAME=`<div class="fart"><img class="fbase" src="img/frame/base.svg" alt=""><img class="f-logo" src="img/frame/logo.svg" alt="Bonchon"><img class="f-crown" src="img/frame/crown.svg" alt=""><img class="f-sp s1" src="img/frame/spark.svg" alt=""><img class="f-sp s2" src="img/frame/spark.svg" alt=""><img class="f-sp s3" src="img/frame/spark.svg" alt=""><img class="f-ry" src="img/frame/rays-y.svg" alt=""><img class="f-drum" src="img/frame/drum.svg" alt=""><img class="f-chick" src="img/frame/chicken.svg" alt=""><img class="f-rr" src="img/frame/rays-r.svg" alt=""><img class="f-buck" src="img/frame/bucket.svg" alt=""></div>`;
 const recapKey=()=>V.round+'|'+V.recapTab;let recapSeen={k:'',n:0},recapCheer='';
 const unq=t=>String(t).replace(/^["“”\s]+|["“”\s]+$/g,'');
 const recapList=()=>AK.map(a=>V.answer.find(x=>x.a===a)).filter(Boolean);
@@ -42,7 +43,7 @@ function confetti(n=70){
 /* ---------- login ---------- */
 function showLogin(msg){
   document.body.className='';
-  app.innerHTML=`<div class="login"><div class="lframe"><img class="lgif" src="img/frame.gif" alt=""><div class="lban"><span class="tag k">TEAM BONCHON</span><h1 class="brush">Manager <em>Meeting</em> Game</h1></div></div><form class="login-card" id="f" autocomplete="off">
+  app.innerHTML=`<div class="login"><div class="lframe">${FRAME}<div class="lban"><span class="tag k">TEAM BONCHON</span><h1 class="brush">Manager <em>Meeting</em> Game</h1></div></div><form class="login-card" id="f" autocomplete="off">
     <p>เข้าเล่นด้วยรหัสพนักงานของคุณ</p>
     <label for="id">รหัสพนักงาน</label><input id="id" autocapitalize="off" autocomplete="username" required>
     <label for="pw">รหัสผ่าน</label><input id="pw" type="password" autocomplete="current-password" required>
@@ -358,11 +359,11 @@ function patchHost(){
 function hBoard(){return `<div class="hboard" style="grid-template-rows:repeat(${Math.max(1,(V.scoreboard||[]).length)},1fr)">${(V.scoreboard||[]).map((r,i)=>`<div class="hrow ${i===0&&r.total>0?'top1':''}" style="animation-delay:${i*.06}s"><span class="r">${r.rank}</span><span>${esc(rowLabel(r))}</span><span class="g">${r.last?'+'+r.last:''}</span><span class="t">${r.total}</span></div>`).join('')}</div>`}
 function introHost(s,tag,t,lines,img){s.innerHTML=`<div class="scr c"><span class="tag" style="font-size:40px">${tag}</span><h1 class="t1 brush" style="margin:16px 0 26px">${t}</h1><div style="display:flex;gap:30px;align-items:center;font-size:36px;text-align:left">${img?`<img src="${img}" alt="" style="height:440px;border-radius:20px">`:''}<div class="rules" style="width:1100px">${lines.map(l=>`<div>${l}</div>`).join('')}</div></div></div>`}
 const HV={
-  idle(s){s.innerHTML=`<div class="scr fr"><div class="fbox fidle"><span class="tag k">TEAM BONCHON</span><h1 class="t1 brush">Manager <em>Meeting</em> Game</h1><p class="t3">กด Launch เมื่อพร้อมให้ทุกคนเข้าเกม</p></div></div>`},
+  idle(s){s.innerHTML=`<div class="scr fr">${FRAME}<div class="fbox fidle"><span class="tag k">TEAM BONCHON</span><h1 class="t1 brush">Manager <em>Meeting</em> Game</h1><p class="t3">กด Launch เมื่อพร้อมให้ทุกคนเข้าเกม</p></div></div>`},
   lobby(s){
     const url=location.origin+location.pathname;let svg='';
     try{const q=qrcode(0,'M');q.addData(url);q.make();svg=q.createSvgTag({scalable:true,margin:2})}catch{}
-    s.innerHTML=`<div class="scr fr"><div class="fbox flobby"><h1 class="t2 brush">สแกนเข้าเกม<em>เลย!</em></h1><div class="fgrid"><div class="qr">${svg}<div class="qcap">ล็อกอินด้วยรหัสพนักงาน</div></div><div class="fside"><div class="fcount"><span class="big" data-b="joined">0</span><span class="t3">/ ${V.totalUsers} คน</span></div><div class="url">${esc(url)}</div><div class="chips" id="chips"></div></div></div></div></div>`;
+    s.innerHTML=`<div class="scr fr">${FRAME}<div class="fbox flobby"><h1 class="t2 brush">สแกนเข้าเกม<em>เลย!</em></h1><div class="fgrid"><div class="qr">${svg}<div class="qcap">ล็อกอินด้วยรหัสพนักงาน</div></div><div class="fside"><div class="fcount"><span class="big" data-b="joined">0</span><span class="t3">/ ${V.totalUsers} คน</span></div><div class="url">${esc(url)}</div><div class="chips" id="chips"></div></div></div></div></div>`;
   },
   g1(s){s.innerHTML=`<div class="scr"><div class="fhead"><span class="tag" style="font-size:30px">เกมที่ 1</span><h1 class="t2 brush">เราคือสัตว์<em>ประเภทไหน?</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800;font-size:64px">0</span> / ${V.totalUsers} คน ทำเสร็จแล้ว</p></div>${dist()}</div>`},
   g1_end(s){s.innerHTML=`<div class="scr"><div class="fhead"><h1 class="t2 brush">ทีมเราเป็น<em>แบบนี้!</em></h1><p class="t3"><span data-b="g1done" style="color:var(--red);font-weight:800">0</span> คน ได้รับสติ๊กเกอร์ของตัวเอง</p></div>${dist()}</div>`;fanfare();confetti(90)},
