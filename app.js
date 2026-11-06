@@ -204,12 +204,10 @@ const PV={
   },
 };
 function showResult(m,a){
-  const d=A[a],c=V.me.g1Counts,p=V.me.promise||{};
+  const d=A[a],c=V.me.g1Counts;
   m.innerHTML=`<div class="center"><p class="sub">คุณคือ…</p><img class="hero a-${a}" src="img/${a}.png" alt="${d.th}"><h2 class="h brush"><em>${d.th}</em> ${d.en}</h2><div class="sticker">ติดสติ๊กเกอร์${d.th}ได้เลย!</div>
   ${c?`<p class="sub">A ${c.bull} · B ${c.eagle} · C ${c.rat} · D ${c.bear}</p>`:''}
-  <div class="traits"><div class="card"><b style="color:var(--good)">จุดแข็งที่เก็บไว้</b><br>${d.strength}</div><div class="card"><b style="color:var(--red)">Gap ที่ต้องปิด</b><br>${d.gap}</div><div class="card"><b>ยืมจุดแข็งจาก</b><br>${d.borrow}</div><div class="card"><b>GEL ที่สมบูรณ์แบบ</b><br>${d.ideal}</div><div class="card"><b>พูดกับคุณแบบนี้ได้ผลที่สุด</b><br>${d.talk}</div>
-  <form class="card" id="gp"><b style="color:var(--red)">GEL Promise</b><label for="pg">Gap ของฉันคือ</label><input id="pg" maxlength="300" value="${esc(p.gap)}"><label for="pn">Shift ถัดไปฉันจะ</label><input id="pn" maxlength="300" value="${esc(p.next)}"><button class="btn k full">บันทึก</button></form></div></div>`;
-  $('#gp',m).onsubmit=async e=>{e.preventDefault();const j=await act({type:'g1promise',gap:$('#pg',m).value,next:$('#pn',m).value});toast(j.error||'บันทึกแล้ว')};
+  <div class="traits"><div class="card"><b style="color:var(--good)">จุดแข็งที่เก็บไว้</b><br>${d.strength}</div><div class="card"><b style="color:var(--red)">Gap ที่ต้องปิด</b><br>${d.gap}</div><div class="card"><b>ยืมจุดแข็งจาก</b><br>${d.borrow}</div><div class="card"><b>GEL ที่สมบูรณ์แบบ</b><br>${d.ideal}</div><div class="card"><b>พูดกับคุณแบบนี้ได้ผลที่สุด</b><br>${d.talk}</div></div></div>`;
   MMAudio.animal(a);confetti();
 }
 async function quiz(m){
@@ -431,7 +429,7 @@ function dist(){return `<div class="dist">${AK.map(a=>`<div class="dcol"><img cl
 function openReset(){
   panelOpen=true;
   $('#pn').innerHTML=`<div class="panel resetbox" role="dialog" aria-modal="true" aria-labelledby="rsT"><h2 id="rsT">🔄 รีเซ็ตทั้งหมดและเริ่มเล่นใหม่?</h2>
-  <p>ผลเกมที่ 1 GEL Promise คำตอบ และคะแนนทั้งหมดจะถูกลบ <b>กู้คืนไม่ได้</b></p>
+  <p>ผลเกมที่ 1 คำตอบ และคะแนนทั้งหมดจะถูกลบ <b>กู้คืนไม่ได้</b></p>
   <p>ยังเก็บไว้: รายชื่อพนักงาน กลุ่ม วิดีโอ และการตั้งค่าคะแนน ทุกคนไม่ต้องล็อกอินใหม่ แล้วหน้าจอจะกลับไปที่ QR รอเริ่มเกม</p>
   <div class="jump"><button class="btn w" id="rsX">⬇️ ดาวน์โหลดผลก่อน</button><button class="btn k" id="rsNo">ยกเลิก</button><button class="btn" id="rsGo">รีเซ็ตและเริ่มใหม่</button></div></div>`;
   const close=()=>{panelOpen=false;$('#pn').innerHTML=''};
