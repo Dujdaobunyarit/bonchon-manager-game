@@ -83,7 +83,7 @@ const map = Object.fromEntries(Object.keys(sc.commands).map(k => [k, cards.find(
 const ts = Date.now(), rs = await Promise.all(coaches.map(c => rpc('mm_act', { p_token: c.t, p_body: { type: 'g2', map } })));
 console.log(`  ${coaches.length} simultaneous submits in ${Date.now() - ts} ms`);
 check(rs.every(r => r.ok), 'every submit accepted');
-await adm({ cmd: 'next' }); await adm({ cmd: 'next' });
+await adm({ cmd: 'next' }); await adm({ cmd: 'recapOpenAll' }); await adm({ cmd: 'next' }); await adm({ cmd: 'recapOpenAll' }); await adm({ cmd: 'next' });
 const b = await rpc('mm_view', { p_token: A }), scores = b.scoreboard.map(r => r.total);
 console.log('  scores', scores.join(', '));
 check(new Set(scores).size === scores.length && scores[0] === 55 && scores[coaches.length - 1] === 40 + 15 - (coaches.length - 1), 'no ties: 55 down to 46');

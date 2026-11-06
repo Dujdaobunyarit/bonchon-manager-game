@@ -414,3 +414,41 @@ body.store .center{min-height:0}
 .glow{display:none}
 .stagef{background:radial-gradient(circle 106px at 50% 52%,#ff5a55 0,#d7141a 72%,#b00d12 98%,#0000 100%)}
 .lgrid-p .stagef{background:radial-gradient(circle 58px at 50% 52%,#ff5a55 0,#d7141a 72%,#b00d12 98%,#0000 100%)}
+
+/* game 2 answers: one animal at a time, green right style and red wrong style */
+.rcscr{padding:16px 36px 12px!important;gap:12px}
+#stage.rcs .brand{display:none}
+.rhead{display:flex;align-items:center;gap:26px;border-radius:24px;padding:12px 28px;color:#fff;box-shadow:0 10px 26px #0005;animation:slide .45s both}
+.rhead.good{background:linear-gradient(100deg,#0d8a47,#16a85a)}.rhead.bad{background:linear-gradient(100deg,#b70d13,#e0242a)}
+.rbadge{flex:none;background:#fff;border-radius:18px;padding:6px 26px;font-size:50px;font-weight:800;line-height:1.25}
+.rhead.good .rbadge{color:#0d8a47}.rhead.bad .rbadge{color:#c8141a}
+.rht{min-width:0}.rht h1{margin:0;font-size:54px;font-weight:800;font-style:italic;line-height:1.15}.rht p{margin:2px 0 0;font-size:29px;line-height:1.25;opacity:.96}
+.rgrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:20px;padding-bottom:18px;perspective:1600px}
+.rcp{height:100%;min-height:0}.rcp:not(.open){cursor:pointer}
+.rcp.good .face.fback{background:linear-gradient(150deg,#19b863,#0a7038);box-shadow:0 14px 0 #075229,0 24px 36px #0007}
+.rcp.bad .face.fback{background:linear-gradient(150deg,#ec3036,#9c0b10);box-shadow:0 14px 0 #6f070b,0 24px 36px #0007}
+.rcp .face.fback b{color:#141414}.rcp.good .face.fback span{text-shadow:0 8px 0 #075229}.rcp.bad .face.fback span{text-shadow:0 8px 0 #6f070b}
+.rcp .face.fback small{font-size:52px;letter-spacing:0;opacity:1;margin-top:10px}
+.rcp.good .face.front{background:linear-gradient(180deg,#f4fff8,#d6f7e3);border-color:#16a85a;box-shadow:0 14px 0 #0a7038,0 24px 36px #0007}
+.rcp.bad .face.front{background:linear-gradient(180deg,#fff6f5,#ffdcd9);border-color:#e0242a;box-shadow:0 14px 0 #9c0b10,0 24px 36px #0007}
+.rcp .stagef{height:31%}
+.rcp.good .stagef{background:radial-gradient(circle 100px at 50% 52%,#5fe39b 0,#16a85a 72%,#0d8a47 98%,#0000 100%)}
+.rcp.bad .stagef{background:radial-gradient(circle 100px at 50% 52%,#ff6d68 0,#e0242a 72%,#b70d13 98%,#0000 100%)}
+.verd{position:absolute;z-index:3;left:12px;top:10px;width:66px;height:66px;border-radius:50%;color:#fff;font-style:normal;font-weight:800;font-size:44px;display:grid;place-items:center}
+.rcp.good .verd{background:#0d8a47;box-shadow:0 5px 0 #075229}.rcp.bad .verd{background:#c8141a;box-shadow:0 5px 0 #8f0d11}
+.fx{position:absolute;right:26px;top:10px;font-size:50px;animation:floaty 2.4s ease-in-out infinite}
+.rcp .face.front h3{font-size:44px;padding:0 26px}.rcp.good .face.front h3{background:#0d8a47;box-shadow:0 5px 0 #075229}.rcp.bad .face.front h3{background:#c8141a;box-shadow:0 5px 0 #8f0d11}
+.rtext{flex:1;min-height:0;width:100%;padding:6px 18px 12px;display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden}
+.rtext p{margin:0}
+.rlab{font-size:28px;font-weight:700;margin-top:4px!important}.rcp.good .rlab{color:#0a7038}.rcp.bad .rlab{color:#b70d13}
+.rcmd{font-size:46px;line-height:1.25;font-weight:500;color:#0b3d24}
+.rsay{font-size:43px;line-height:1.22;font-weight:700;color:#c8141a}
+.rres{font-size:39px;line-height:1.22;font-weight:500;color:#141414}
+.lcard.fresh.rcp .rtext{animation:liin .5s 1s both}
+.rcp.bad .a-3d{animation:turn3d 3.8s ease-in-out infinite,grump 2.6s ease-in-out infinite}
+.rcp.bad.fresh .a-3d{animation:burst3d 1s .45s cubic-bezier(.3,1.6,.5,1) both,grump 2.6s 1.45s ease-in-out infinite}
+@keyframes grump{0%,86%,100%{translate:0 0}89%{translate:-7px 0}92%{translate:7px 0}95%{translate:-5px 0}98%{translate:4px 0}}
+.pverd{border-radius:14px;color:#fff;text-align:center;font-weight:800;font-size:clamp(24px,6.6vw,34px);padding:8px;margin:0 0 10px}.pverd.good{background:#0d8a47}.pverd.bad{background:#c8141a}
+.prc.good{border:3px solid #16a85a;background:#effcf4}.prc.bad{border:3px solid #e0242a;background:#fff2f1}.prc{animation:pop .4s both}
+.prc .rcmd,.prc .rsay{display:block;font-size:clamp(17px,4.6vw,22px);line-height:1.32}.prc .rsay{margin-bottom:4px}.prc small{font-size:clamp(15px,4.1vw,19px)}
+.prc.wait{opacity:.72;animation:none;border:2px dashed #9aa}.prc.wait img{filter:grayscale(1)}

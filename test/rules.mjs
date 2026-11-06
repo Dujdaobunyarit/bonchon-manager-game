@@ -13,6 +13,7 @@ await db.exec(read('supabase/update_3.sql'));
 await db.exec(read('supabase/update_4.sql'));
 await db.exec(read('supabase/update_5.sql'));
 await db.exec(read('supabase/update_6.sql'));
+await db.exec(read('supabase/update_7.sql'));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -113,7 +114,10 @@ check(v.phase === 'g2_reveal' && v.answer.length === 4 && v.me.result.pts === 11
 check((await view(t3)).me.result.pts === 50 && (await view(t2)).me.result.pts === 100, 'half right 50, no bonus even when first; second all-correct 100, no bonus');
 v = await view(t1); check(v.recapTab === 'answer', 'recap starts with the right answers');
 check((await act(t2, { type: 'g2', map: correct })).ok === undefined, 'no submits after reveal');
-await next(); v = await view(t5); check(v.phase === 'g2_reveal' && v.recapTab === 'wrong' && v.answer[0].wrong.result, 'next shows what happens with the wrong style');
+check(v.recapOpen === 0, 'answers start closed');
+for (let i = 1; i <= 4; i++) { await next(); check((await view(t1)).recapOpen === i && (await view(t1)).recapTab === 'answer', `answer card ${i} opens`); }
+await next(); v = await view(t5); check(v.phase === 'g2_reveal' && v.recapTab === 'wrong' && v.recapOpen === 0 && v.answer[0].wrong.result, 'next shows what happens with the wrong style, closed');
+await next(); await next(); await next(); await next(); v = await view(t5); check(v.phase === 'g2_reveal' && v.recapOpen === 4, 'wrong style cards open one at a time');
 await next(); v = await view(t1);
 const b = (vw, n) => vw.scoreboard.find(r => r.id === L4[n].id);
 check(b(v, 0).total === 115 && b(v, 1).total === 100 && b(v, 2).total === 50 && b(v, 0).rank === 1 && b(v, 0).nick, 'scoreboard 115 / 100 / 50 ranked with group');
@@ -127,7 +131,7 @@ await adm(A, { cmd: 'next' }); check((await view(t1)).me.result.pts === 0, 'one 
 await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 2, clear: true }); await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 0 }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); v = await view(t1);
 await adm(A, { cmd: 'board', on: true }); check((await view(t5)).scoreboard, 'admin shows scoreboard to all'); await adm(A, { cmd: 'board', on: false });
 // countdown auto-advance
-await next(); await next(); v = await view(t1); check(v.phase === 'g2_countdown' && v.round === 1, 'next scenario countdown');
+await adm(A, { cmd: 'recapOpenAll' }); check((await view(t1)).recapOpen === 4, 'admin can open all cards'); await next(); await adm(A, { cmd: 'recapOpenAll' }); await next(); await next(); await next(); v = await view(t1); check(v.phase === 'g2_countdown' && v.round === 1, 'next scenario countdown');
 await db.exec('reset role'); await db.exec(`update game.state set ends_at = now() - interval '1 second'`); await db.exec('set role anon');
 v = await view(t5); check(v.phase === 'g2_match' && !v.cards, 'countdown auto-opens match when due');
 // game 3
@@ -182,7 +186,7 @@ await next(); check((await view(t1)).phase === 'lobby', 'restart goes back to th
 const playG2 = async (round, first, second) => {
   await adm(A, { cmd: 'goto', phase: 'g2_motion', round, clear: true }); await next(); await next();
   const vw = await view(first), sc9 = content.scenarios[round], mp = Object.fromEntries(Object.keys(sc9.commands).map(k => [k, vw.cards.find(x => x.t === sc9.commands[k]).id]));
-  await act(first, { type: 'g2', map: mp }); await act(second, { type: 'g2', map: mp }); await next(); await next(); await next();
+  await act(first, { type: 'g2', map: mp }); await act(second, { type: 'g2', map: mp }); await next(); await adm(A, { cmd: 'recapOpenAll' }); await next(); await adm(A, { cmd: 'recapOpenAll' }); await next();
   return view(A);
 };
 await playG2(3, t1, t2); let tie = await playG2(4, t2, t1);
@@ -194,6 +198,6 @@ check(row(tie, 1).rank === 1 && row(tie, 0).rank === 2 && tie.scoreboard[0].id =
 check(tie.scoreboard.filter(x => x.total === 0).every(x => x.ms === 0), 'groups that never scored have no time');
 await adm(A, { cmd: 'resetAll' });
 // last round transitions
-await adm(A, { cmd: 'goto', phase: 'g2_motion', round: content.scenarios.length - 1 }); for (let i = 0; i < 5; i++) await next();
+await adm(A, { cmd: 'goto', phase: 'g2_motion', round: content.scenarios.length - 1 }); for (let i = 0; i < 13; i++) await next();
 check((await view(A)).admin.nextLabel === 'สรุปเกมที่ 2', 'last scenario leads to summary'); await next(); check((await view(A)).phase === 'g2_end', 'game 2 end');
 console.log(`\nPASS ${ok} checks`); process.exit(0);

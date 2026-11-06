@@ -13,6 +13,11 @@ const LEARN = [
 ];
 const learnCard=(l,i,open,fresh)=>`<div class="lcard ${open?'open':''} ${fresh?'fresh':''}" style="--d:${i*.4}s"><div class="flipper"><div class="face fback"><b>${l.dir}</b><span>?</span><small>${l.en}</small></div><div class="face front"><i class="dirb">${l.dir}</i><div class="stagef"><span class="glow"></span><img class="a-3d" src="img/${l.a}.png" alt="${l.th}"><span class="shadow"></span></div><h3>${l.th}<small>${l.en}</small></h3><ul>${l.tips.map((t,k)=>`<li style="--k:${k}"><em>${t[0]}</em>${t[1]}</li>`).join('')}</ul></div></div></div>`;
 let learnSeen=-1;
+const recapKey=()=>V.round+'|'+V.recapTab;let recapSeen={k:'',n:0},recapCheer='';
+const unq=t=>String(t).replace(/^["“”\s]+|["“”\s]+$/g,'');
+const recapList=()=>AK.map(a=>V.answer.find(x=>x.a===a)).filter(Boolean);
+const recapBody=(x,w)=>w?`<p class="rlab">ถ้าพูดว่า</p><p class="rsay">“${esc(unq(x.wrong.say))}”</p><p class="rlab">ผลที่ได้</p><p class="rres">${esc(x.wrong.result)}</p>`:`<p class="rlab">พูดให้ตรงสไตล์</p><p class="rcmd">${esc(x.cmd)}</p>`;
+const recapCard=(x,i,open,fresh,w)=>`<div class="lcard rcp ${w?'bad':'good'} ${open?'open':''} ${fresh?'fresh':''}" data-rc="${i}" style="--d:${i*.4}s"><div class="flipper"><div class="face fback"><b>${i+1}</b><span>?</span><small>${A[x.a].th}</small></div><div class="face front"><i class="verd">${w?'✗':'✓'}</i><div class="stagef"><img class="a-3d" src="img/${x.a}.png" alt="${A[x.a].th}"><span class="shadow"></span><span class="fx">${w?'💢':'✨'}</span></div><h3>${A[x.a].th}</h3><div class="rtext">${recapBody(x,w)}</div></div></div></div>`;
 const AK = ['bull','eagle','rat','bear'];
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -117,11 +122,11 @@ addEventListener('hashchange',()=>location.reload());
 /* ---------- player ---------- */
 function keyPlayer(){
   const m=V.me,g=m.g3||{},x=V.g3||{};
-  return [V.phase,V.round,V.board,V.recapTab,m.g1||'',m.submitted?1:0,x.signs||0,g.choice||'',m.group?m.group.no:''].join('|');
+  return [V.phase,V.round,V.board,V.recapTab,V.recapOpen||0,m.g1||'',m.submitted?1:0,x.signs||0,g.choice||'',m.group?m.group.no:''].join('|');
 }
 function renderPlayer(){
   if(V.phase==='idle'||V.phase==='lobby'){store.del('q:'+V.me.id);LG.round=-1;seenSigns=-1;learnSeen=-1}
-  const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn';
+  const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn'||V.phase==='g2_reveal';
   document.body.className=inForest?'forest':V.phase==='g3_intro'?'g3cover':['g3_board','g3_reveal','g3_scores'].includes(V.phase)?'store':'';
   MMAudio.scene(V.phase==='g1'||V.phase==='g1_end'?'forest':'none');
   const m=V.me,key=keyPlayer();
@@ -178,10 +183,10 @@ const PV={
   g2_reveal(m){
     const r=V.me.result;
     const yours=V.me.canPlay?`<div class="yours">${r?`ถูก ${r.correct}/4 คู่ ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัสคนแรก ${r.bonus})`:''}`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
-    const wrong=V.recapTab==='wrong';
-    m.innerHTML=`${spectBanner()}${yours}<div class="round">เฉลย สถานการณ์ที่ ${V.scenario.n}</div><h2 class="scen" style="margin-bottom:4px">${esc(V.scenario.title)}</h2><p class="sub" style="margin-bottom:12px">เป้าหมาย: ${esc(V.scenario.goal)}</p>
-    ${V.answer.map(x=>`<div class="rcard"><img src="img/${x.a}.png" alt=""><div><b>${A[x.a].th}</b>${wrong?`<small>ถ้าพูดว่า: ${esc(x.wrong.say)}</small>→ ${esc(x.wrong.result)}`:esc(x.cmd)}</div></div>`).join('')}`;
-    if(r&&r.correct===4)confetti(40);
+    const wrong=V.recapTab==='wrong',n=V.recapOpen??4;
+    m.innerHTML=`${spectBanner()}${yours}<div class="pverd ${wrong?'bad':'good'}">${wrong?'✗ พูดผิดสไตล์':'✓ พูดถูกสไตล์'}</div><div class="round">สถานการณ์ที่ ${V.scenario.n}</div><h2 class="scen" style="margin-bottom:4px">${esc(V.scenario.title)}</h2><p class="sub" style="margin-bottom:12px">เป้าหมาย: ${esc(V.scenario.goal)}</p>
+    ${recapList().map((x,i)=>i<n?`<div class="rcard prc ${wrong?'bad':'good'}"><img src="img/${x.a}.png" alt=""><div><b>${A[x.a].th}</b>${wrong?`<span class="rsay">“${esc(unq(x.wrong.say))}”</span><small>→ ${esc(x.wrong.result)}</small>`:`<span class="rcmd">${esc(x.cmd)}</span>`}</div></div>`:`<div class="rcard prc wait"><img src="img/${x.a}.png" alt=""><div><b>${A[x.a].th}</b><small>รอเปิดที่จอหลัก</small></div></div>`).join('')}`;
+    const ck='p'+V.round;if(r&&r.correct===4&&recapCheer!==ck){recapCheer=ck;confetti(40)}
   },
   g2_scores(m){m.innerHTML=boardHTML(`คะแนนหลังสถานการณ์ที่ ${V.scenario.n}`)},
   g2_end(m){m.innerHTML=boardHTML('จบเกมที่ 2')},
@@ -306,15 +311,15 @@ document.addEventListener('pointerdown',()=>{if(V&&location.hash!=='#backoffice'
 function fit(){const s=$('#stage');if(!s)return;const k=Math.min(innerWidth/1920,innerHeight/1080);s.style.transform=`scale(${k}) translate(-50%,-50%)`}
 addEventListener('resize',fit);
 let panelOpen=false,barHidden=false;
-function keyHost(){const g=V.g3||{};return [V.phase,V.round,V.board,V.recapTab,g.signs||0].join('|')}
+function keyHost(){const g=V.g3||{};return [V.phase,V.round,V.board,V.recapTab,V.recapOpen||0,g.signs||0].join('|')}
 function renderHost(){
   document.body.className='host';
   if(!$('#stage')){app.innerHTML=`<div id="stage"><div class="brand">TEAM <i>BONCHON</i></div><div id="scr"></div><div id="ovl"></div><div class="bar" id="bar"></div><div id="pn"></div></div>`;fit();}
-  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['idle','lobby','groups','g2_intro','g3_intro'].includes(V.phase));MMAudio.scene(V.phase==='learn'?'forest':inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');
+  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn'||V.phase==='g2_reveal';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['idle','lobby','groups','g2_intro','g3_intro'].includes(V.phase));MMAudio.scene(V.phase==='learn'?'forest':inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');$('#stage').classList.toggle('rcs',V.phase==='g2_reveal');
   drawBar();
   patchHost();
   const key=keyHost();
-  if(key!==lastKey){const old=lastKey;lastKey=key;if(old&&V.phase!=='learn')MMAudio.transition();if(V.phase!=='g2_motion')MMAudio.duck(false);
+  if(key!==lastKey){const old=lastKey;lastKey=key;if(old&&V.phase!=='learn'&&!(V.phase==='g2_reveal'&&old.startsWith('g2_reveal')))MMAudio.transition();if(V.phase!=='g2_motion')MMAudio.duck(false);
     (HV[V.phase]||HV.idle)($('#scr'),old);patchHost();
   }
   setOnce($('#ovl'),V.board&&V.scoreboard?`<div class="hboard-ov"><h2 class="t2 brush">สกอร์<em>บอร์ด</em></h2>${hBoard()}</div>`:'');
@@ -323,13 +328,14 @@ function renderHost(){
 function drawBar(){
   const a=V.admin;
   $('#bar').innerHTML=`<button class="btn ghost ${V.board?'on':''}" id="bBoard">🏆 สกอร์บอร์ด</button>
-    ${V.phase==='g2_reveal'?`<button class="btn ghost ${V.recapTab==='wrong'?'on':''}" id="bWrong">ถ้าพูดผิดสไตล์</button>`:''}
+    ${V.phase==='g2_reveal'?`<button class="btn ghost ${V.recapTab==='wrong'?'on':''}" id="bWrong">${V.recapTab==='wrong'?'✓ พูดถูกสไตล์':'✗ ถ้าพูดผิดสไตล์'}</button>${(V.recapOpen??4)<4?'<button class="btn ghost" id="bOpenAll">เปิดทั้งหมด</button>':''}`:''}
     <button class="btn ghost" id="bSet">⚙️ ตั้งค่า</button><button class="btn ghost" id="bBo">📊 หลังบ้าน</button><button class="btn ghost" id="bReset">🔄 เริ่มใหม่</button><button class="btn ghost" id="bFs">⛶</button><button class="btn ghost ${MMAudio.musicOn?'on':''}" id="bMusic">🎵</button><button class="btn ghost ${MMAudio.sfxOn?'on':''}" id="bMute">🔔</button>
     <span class="stat">เข้าแล้ว ${a.joined.length}/${V.totalUsers}</span>
     ${a.draftAssessment?'<span class="warn">เกม 1 ใช้คำถามทดสอบ</span>':''}
     ${a.nextLabel?`<button class="btn primary" id="bNext">${esc(a.nextLabel)}</button>`:'<span style="margin-left:auto"></span>'}`;
   $('#bBoard').onclick=()=>cmd({cmd:'board',on:!V.board});
   if($('#bWrong'))$('#bWrong').onclick=()=>cmd({cmd:'recapTab',tab:V.recapTab==='wrong'?'answer':'wrong'});
+  if($('#bOpenAll'))$('#bOpenAll').onclick=()=>cmd({cmd:'recapOpenAll'});
   $('#bSet').onclick=openPanel;$('#bReset').onclick=openReset;$('#bBo').onclick=()=>window.open(location.pathname+'#backoffice','_blank');
   $('#bFs').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();
   $('#bMute').onclick=()=>{MMAudio.sfx(!MMAudio.sfxOn);drawBar()};
@@ -383,9 +389,10 @@ const HV={
   g2_countdown(s){s.innerHTML=`<div class="scr c"><p class="t3">เตรียมโยงคำสั่ง!</p><div class="cd go" data-b="cd">${cdLeft()}</div><p class="t2 brush">${esc(V.scenario.title)}</p></div>`},
   g2_match(s){s.innerHTML=`<div class="scr"><div style="display:flex;gap:18px;align-items:baseline;margin-top:12px"><span class="tag" style="font-size:28px">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</span><h1 class="t2 brush" style="font-size:54px">${esc(V.scenario.title)}</h1></div><div class="hanimals">${AK.map(a=>`<div class="hanimal"><img src="img/${a}.png" alt=""><div><b>${A[a].th}</b><small>${A[a].talk}</small></div></div>`).join('')}</div><div class="hmatch"><div class="hcards">${V.cards.map(c=>`<div class="hcard">${esc(c.t)}</div>`).join('')}</div><div class="hside"><div class="clock"></div><div class="t3">ส่งคำตอบแล้ว</div><div class="big" style="font-size:96px" data-b="submitted"></div><div class="t3">กลุ่ม</div></div></div></div>`},
   g2_reveal(s){
-    const w=V.recapTab==='wrong';
-    s.innerHTML=`<div class="scr"><div style="display:flex;gap:18px;align-items:baseline;margin-top:12px"><span class="tag" style="font-size:28px">${w?'ถ้าพูดผิดสไตล์':'เฉลย'}</span><h1 class="t2 brush" style="font-size:54px">${esc(V.scenario.title)}</h1></div><p style="font-size:28px;color:var(--mute)">เป้าหมายร่วม: ${esc(V.scenario.goal)} ${w?'':` · ถูกครบ ${V.allCorrect??0} กลุ่ม`}</p><div class="recap">${V.answer.map(x=>`<div class="rc"><img src="img/${x.a}.png" alt=""><h3>${A[x.a].th}</h3>${w?`<p class="bad">✗ ${esc(x.wrong.say)}</p><p>→ ${esc(x.wrong.result)}</p>`:`<p>${esc(x.cmd)}</p>`}</div>`).join('')}</div></div>`;
-    if(!w)fanfare();
+    const w=V.recapTab==='wrong',n=V.recapOpen??4,list=recapList(),k=recapKey(),fresh=recapSeen.k===k&&n===recapSeen.n+1?n-1:-1;recapSeen={k,n};
+    s.innerHTML=`<div class="scr rcscr"><div class="rhead ${w?'bad':'good'}"><span class="rbadge">${w?'✗ พูดผิดสไตล์':'✓ พูดถูกสไตล์'}</span><div class="rht"><h1>${esc(V.scenario.title)}</h1><p>เป้าหมายร่วม: ${esc(V.scenario.goal)}${w?'':` · ถูกครบ ${V.allCorrect??0} กลุ่ม`}</p></div></div><div class="rgrid">${list.map((x,i)=>recapCard(x,i,i<n,i===fresh,w)).join('')}</div></div>`;
+    s.querySelectorAll('.lcard:not(.open)').forEach(e=>{e.onclick=()=>{if(+e.dataset.rc===(V.recapOpen??4))cmd({cmd:'next'})}});
+    if(fresh>=0){MMAudio.open();setTimeout(()=>MMAudio.animal(list[fresh].a),350);setTimeout(()=>w?MMAudio.bad():MMAudio.good(),1250);if(fresh===3&&!w)setTimeout(()=>{fanfare();confetti(90)},1500)}
   },
   g2_scores(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">สกอร์บอร์ด <em>หลังสถานการณ์ที่ ${V.scenario.n}</em></h1>${hBoard()}</div>`},
   g2_end(s){s.innerHTML=`<div class="scr"><h1 class="t2 brush" style="margin-top:12px">จบ<em>เกมที่ 2</em></h1>${hBoard()}</div>`;fanfare()},

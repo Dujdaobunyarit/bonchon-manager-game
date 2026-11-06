@@ -112,6 +112,8 @@ const MMAudio = (() => {
     transition() { if (!sfxOn || !ensure()) return; const t = ctx.currentTime; noise(t, .28, .3, 500, 'bandpass', master, 4500); [72, 79, 84].forEach((m, i) => tone(n(m), t + .12 + i * .06, .22, 'triangle', .22)); },
     tick() { if (sfxOn && ensure()) tone(660, ctx.currentTime, .09, 'square', .12); },
     open() { if (sfxOn && ensure()) { const t = ctx.currentTime; tone(n(69), t, .12, 'triangle', .28); tone(n(76), t + .09, .2, 'triangle', .28); } },
+    good() { if (sfxOn && ensure()) [76, 84].forEach((m, i) => tone(n(m), ctx.currentTime + i * .1, .24, 'triangle', .26)); },
+    bad() { if (sfxOn && ensure()) { const t = ctx.currentTime; tone(165, t, .2, 'square', .14); tone(123, t + .2, .42, 'square', .14); } },
     fanfare() { if (sfxOn && ensure()) [60, 64, 67, 72, 76].forEach((m, i) => tone(n(m), ctx.currentTime + i * .1, .3, 'triangle', .28)); },
   };
 })();
