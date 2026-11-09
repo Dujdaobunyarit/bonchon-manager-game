@@ -19,6 +19,7 @@ await db.exec(read('supabase/update_9.sql'));
 await db.exec(read('supabase/update_10.sql'));
 await db.exec(read('supabase/update_11.sql'));
 await db.exec(read('supabase/update_12.sql'));
+await db.exec(read("supabase/update_13.sql"));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -216,4 +217,15 @@ check(v.g3N === 10 && v.choices.length === 7 && !v.choices.some(c => c.id === 'p
 await next(); check((await act(t1, { type: 'g3', choice: 'p8' })).error, 'extra character is not a choice');
 await act(t1, { type: 'g3', choice: 'p2' }); for (let i = 0; i < 8 && (await view(t1)).phase !== 'g3_reveal'; i++) await next(); v = await view(t1);
 check(v.phase === 'g3_reveal' && v.g3.persona.name === 'น้องมายด์' && v.g3.persona.as === 'p2' && v.me.result.sign === 0, 'น้องมายด์ is answered as น้องปันปัน');
+// signs can be opened in any order; points follow how many are open
+await adm(A, { cmd: 'settings', settings: { signCount: 5, signPoints: [100, 80, 60, 40, 20] } });
+await adm(A, { cmd: 'goto', phase: 'g3_board', round: 2, clear: true }); const P3 = content.personas[2];
+await adm(A, { cmd: 'openSign', i: 3 }); v = await view(t1);
+check(v.g3.signs === 1 && v.g3.clues[3] === P3.clues[3] && v.g3.clues.filter(Boolean).length === 1 && v.g3.opened.join() === '3', 'admin can open sign 4 first');
+check((await view(A)).admin.nextLabel === 'เปิดป้ายที่ 1', 'next button opens the first closed sign');
+await adm(A, { cmd: 'openSign', i: 3 }); check((await view(t1)).g3.signs === 1, 'opening the same sign twice does nothing');
+await adm(A, { cmd: 'openSign', i: 1 }); v = await view(t1); check(v.g3.signs === 2 && v.g3.opened.join() === '3,1' && v.g3.clues[1] && !v.g3.clues[0], 'then sign 2');
+await act(t2, { type: 'g3', choice: P3.id }); await next(); check((await view(A)).admin.nextLabel === 'เปิดป้ายที่ 3', 'next skips opened signs');
+await adm(A, { cmd: 'openSign', i: 4 }); await adm(A, { cmd: 'openSign', i: 2 }); check((await view(A)).admin.nextLabel === 'เฉลย', 'all five open in mixed order');
+await next(); v = await view(t2); check(v.phase === 'g3_reveal' && v.me.result.pts === 80 + 15 && v.g3.clues.every(Boolean), 'two signs open (any order) scores 80');
 console.log(`\nPASS ${ok} checks`); process.exit(0);

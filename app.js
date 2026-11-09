@@ -302,10 +302,13 @@ function linkGame(m){
   drawCards();
   window.onresize=()=>{if(lk.isConnected)lines()};
 }
+const newSign=g=>{const o=g.opened||[],r=seenSigns>=0&&g.signs>seenSigns?o[o.length-1]:-1;seenSigns=g.signs;return r??-1};
+const signPts=(g,i)=>{const k=(g.opened||[]).indexOf(i);return k>=0?g.signPoints[k]:''};
+const nowPts=g=>g.signs<g.signCount?(g.signs?`ตอบถูกตอนนี้ได้ <b>${g.signPoints[g.signs-1]} pt</b> · เปิดแล้ว ${g.signs}/${g.signCount} ป้าย`:`เปิดป้ายแรก ตอบถูกได้ <b>${g.signPoints[0]} pt</b>`):`เปิดครบ ${g.signCount} ป้าย ตอบถูกได้ <b>${g.signPoints[g.signCount-1]} pt</b>`;
 function g3Player(m){
   const g=V.g3,me=V.me.g3||{},can=V.me.canPlay;
-  const isNew=seenSigns>=0&&g.signs>seenSigns?g.signs-1:-1;seenSigns=g.signs;
-  const signs=g.clues.map((c,i)=>c?`<div class="sign ${i===isNew?'flip':''}"><span>${esc(c)}</span><span class="p">${g.signPoints[i]} pt</span></div>`:`<div class="sign closed"><span>ป้ายที่ ${i+1}</span><span class="p">${g.signPoints[i]} pt</span></div>`).join('');
+  const isNew=newSign(g);
+  const signs=`<div class="nowpts">${nowPts(g)}</div>`+g.clues.map((c,i)=>c?`<div class="sign ${i===isNew?'flip':''}"><span><i class="sn">${i+1}</i>${esc(c)}</span><span class="p">${signPts(g,i)} pt</span></div>`:`<div class="sign closed"><span>ป้ายที่ ${i+1}</span><span class="p">?</span></div>`).join('');
   if(!can){m.innerHTML=`${spectBanner()}<div class="round">คนที่ ${V.round+1}/${V.g3N} · เค้าคือใคร?</div><div class="signs">${signs}</div>${personaMap(true)}`;return}
   if(me.choice){
     const c=V.choices.find(x=>x.id===me.choice);
@@ -439,10 +442,10 @@ const HV={
     s.querySelectorAll('.gelc.shut').forEach((e,i)=>{e.onclick=()=>{if(AK.indexOf(AK[n])===[...e.parentNode.children].indexOf(e))cmd({cmd:'next'})}});
     if(fresh>=0){MMAudio.open();setTimeout(()=>MMAudio.animal(AK[fresh]),300)}
   },
-  g3_intro(s){s.innerHTML=`<div class="scr cover"><div class="c-left"><i class="br b1"></i><i class="br b2"></i><i class="br b3"></i><div class="c-title"><p class="c-no">เกมที่ 3</p><h1>แฟนพันธุ์แท้ ลูกค้า</h1><hr><ul><li>เปิดป้ายทีละแผ่น ยิ่งน้อยยิ่งได้เยอะ <b>100 · 80 · 60 · 40 · 20 pt</b></li><li>กลุ่มละหนึ่งคำตอบ ล็อกทันที เฉลยพร้อมกัน</li><li>กลุ่มแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b></li><li>คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ</li></ul></div></div><div class="c-right"><i class="sl s1"></i><i class="sl s2"></i>${[[2,12,16],[1,30,6],[5,50,8],[3,72,15],[4,14,66],[7,38,78],[6,66,67]].map(([n,x,y],i)=>`<img class="cf" src="img/face${n}.png" alt="" style="left:${x}%;top:${y}%;animation-delay:${i*.09}s,${-i*.7}s">`).join('')}<div class="c-mid">${neon('7','lg')}<p class="persona-t">CUSTOMER<br>PERSONA</p></div></div></div>`},
+  g3_intro(s){s.innerHTML=`<div class="scr cover"><div class="c-left"><i class="br b1"></i><i class="br b2"></i><i class="br b3"></i><div class="c-title"><p class="c-no">เกมที่ 3</p><h1>แฟนพันธุ์แท้ ลูกค้า</h1><hr><ul><li>เลือกเปิดป้ายแผ่นไหนก่อนก็ได้ ยิ่งเปิดน้อยยิ่งได้เยอะ <b>100 · 80 · 60 · 40 · 20 pt</b></li><li>กลุ่มละหนึ่งคำตอบ ล็อกทันที เฉลยพร้อมกัน</li><li>กลุ่มแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b></li><li>คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ</li></ul></div></div><div class="c-right"><i class="sl s1"></i><i class="sl s2"></i>${[[2,12,16],[1,30,6],[5,50,8],[3,72,15],[4,14,66],[7,38,78],[6,66,67]].map(([n,x,y],i)=>`<img class="cf" src="img/face${n}.png" alt="" style="left:${x}%;top:${y}%;animation-delay:${i*.09}s,${-i*.7}s">`).join('')}<div class="c-mid">${neon('7','lg')}<p class="persona-t">CUSTOMER<br>PERSONA</p></div></div></div>`},
   g3_board(s){
-    const g=V.g3,isNew=seenSigns>=0&&g.signs>seenSigns?g.signs-1:-1;seenSigns=g.signs;if(isNew>=0)MMAudio.open();setTimeout(()=>{const n=s.querySelector('.hsign.nextup');if(n){n.style.cursor='pointer';n.onclick=()=>cmd({cmd:'next'})}});
-    s.innerHTML=`<div class="scr storelay"><div class="st-panel"><h1 class="t2 brush">เค้าคือ<em>ใคร?</em> <small>คนที่ ${V.round+1}/${V.g3N}</small></h1><div class="hsigns">${g.clues.map((c,i)=>c?`<div class="hsign ${i===isNew?'flip':''}"><span>${esc(c)}</span><span class="p">${g.signPoints[i]} pt</span></div>`:`<div class="hsign closed ${i===g.signs?'nextup':''}"><span>ป้ายที่ ${i+1}</span><span class="p">${g.signPoints[i]} pt</span></div>`).join('')}</div></div><div class="st-side">${orbit(neon('?','md'))}<div class="st-count">ส่งคำตอบแล้ว <b data-b="answered">0</b>/${V.totalPlayers} กลุ่ม</div></div></div>`;
+    const g=V.g3,isNew=newSign(g);if(isNew>=0)MMAudio.open();setTimeout(()=>s.querySelectorAll('.hsign.pick').forEach(n=>n.onclick=()=>{s.querySelectorAll('.hsign.pick').forEach(x=>x.classList.remove('pick'));cmd({cmd:'openSign',i:+n.dataset.i})}));
+    s.innerHTML=`<div class="scr storelay"><div class="st-panel"><h1 class="t2 brush">เค้าคือ<em>ใคร?</em> <small>คนที่ ${V.round+1}/${V.g3N}</small></h1><div class="hnow">${nowPts(g)}</div><div class="hsigns">${g.clues.map((c,i)=>c?`<div class="hsign ${i===isNew?'flip':''}"><span><i class="sn">${i+1}</i>${esc(c)}</span><span class="p">${signPts(g,i)} pt</span></div>`:`<div class="hsign closed pick" data-i="${i}"><span>ป้ายที่ ${i+1}</span><span class="p">คลิกเปิด</span></div>`).join('')}</div></div><div class="st-side">${orbit(neon('?','md'))}<div class="st-count">ส่งคำตอบแล้ว <b data-b="answered">0</b>/${V.totalPlayers} กลุ่ม</div></div></div>`;
   },
   g3_reveal(s){
     const g=V.g3,p=g.persona;seenSigns=-1;

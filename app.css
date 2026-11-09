@@ -672,3 +672,10 @@ body.store .center{min-height:0}
 .pmscr .pm-avs .pm-av:not(:only-child) .pav{width:112px;height:112px}
 .pmscr .pm-avs{min-height:200px}.pmscr .pm-av b{font-size:19px;white-space:nowrap}
 .pmscr .pm-tag{font-size:23px}.pmscr .pm-d{font-size:25px}
+
+/* game 3: signs open in any order */
+.hnow{font-size:30px;font-weight:700;margin:-4px 0 12px;color:#333}.hnow b{color:var(--red);font-size:38px}
+.hsign.pick{cursor:pointer;transition:transform .15s,box-shadow .15s}.hsign.pick:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 8px 0 #0003}
+.hsign.closed .p{opacity:.85}
+.sn{display:inline-grid;place-items:center;min-width:1.5em;height:1.5em;border-radius:50%;background:#fff;color:var(--red);font-style:normal;font-weight:800;font-size:.75em;margin-right:12px;vertical-align:middle}
+.nowpts{background:#fff4d6;color:#7a5600;border-radius:12px;padding:8px 12px;font-weight:700;font-size:15px;text-align:center}.nowpts b{color:var(--red)}
