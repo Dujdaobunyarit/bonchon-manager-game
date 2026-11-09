@@ -20,6 +20,7 @@ await db.exec(read('supabase/update_10.sql'));
 await db.exec(read('supabase/update_11.sql'));
 await db.exec(read('supabase/update_12.sql'));
 await db.exec(read("supabase/update_13.sql"));
+await db.exec(read("supabase/update_14.sql"));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -35,7 +36,7 @@ check((await login(FR.id, PW.user)).token, 'franchise login accepted');
 const A = (await login(PW.adminUser.toUpperCase(), PW.admin)).token, next = () => adm(A, { cmd: 'next' });
 const groupsSeed = json('data/groups-seed.json');
 check((await rpc('mm_set_groups', A, groupsSeed)).groups === 10, 'groups loaded');
-const asRow = u => ({ id: u.id, name: u.name, store: u.store, code: u.store.split('-')[0].trim() });
+const asRow = u => ({ id: u.id, name: u.name, store: u.store, code: u.code || u.store.split('-')[0].trim(), ...(u.meet ? { group: String(u.meet) } : {}) });
 const eqRows = roster.filter(u => u.group === 'equity').map(asRow), frRows = roster.filter(u => u.group === 'franchise').map(asRow);
 const imp = (g, rows, dry) => db.query('select public.mm_import($1,$2,$3,$4) v', [A, g, rows, dry]).then(r => r.rows[0].v);
 let dr = await imp('equity', eqRows, true);
@@ -72,7 +73,7 @@ check((await adm(t1, { cmd: 'next' })).error, 'player cannot run admin commands'
 check((await rpc('mm_export', t1)).error, 'player cannot export');
 // game 1
 await next(); check((await act(t1, { type: 'g1', answers: [] })).error, 'cannot play before start');
-await next(); check((await view(t1)).phase === 'g1', 'launch → game 1');
+for (let i = 0; i < 5; i++) await next(); check((await view(t1)).phase === 'g1', 'launch → vote → results → 2 slides → game 1');
 const Q = (await rpc('mm_assessment', t1)).questions;
 check(Q.length === assess.questions.length && !JSON.stringify(Q).includes('"a"'), 'quiz hides animal mapping');
 const r5 = await act(t5, { type: 'g1', answers: assess.questions.map(q => q.options.findIndex(o => o.a === 'rat')) });
@@ -228,4 +229,20 @@ await adm(A, { cmd: 'openSign', i: 1 }); v = await view(t1); check(v.g3.signs ==
 await act(t2, { type: 'g3', choice: P3.id }); await next(); check((await view(A)).admin.nextLabel === 'เปิดป้ายที่ 3', 'next skips opened signs');
 await adm(A, { cmd: 'openSign', i: 4 }); await adm(A, { cmd: 'openSign', i: 2 }); check((await view(A)).admin.nextLabel === 'เฉลย', 'all five open in mixed order');
 await next(); v = await view(t2); check(v.phase === 'g3_reveal' && v.me.result.pts === 80 + 15 && v.g3.clues.every(Boolean), 'two signs open (any order) scores 80');
+// GEL behaviour vote before game 1
+await adm(A, { cmd: 'goto', phase: 'lobby' }); check((await view(A)).admin.nextLabel === 'GEL ที่ดีต้องมีพฤติกรรมอะไร? →', 'lobby leads to the GEL vote');
+check((await act(t5, { type: 'gelvote', picks: [0, 1, 2] })).error, 'no vote before it opens');
+await next(); v = await view(t5); check(v.phase === 'gvote' && v.gv.voters === 0 && v.gv.counts.length === 9, 'vote opens with 9 behaviours');
+check((await act(t5, { type: 'gelvote', picks: [0, 1] })).error, 'must pick exactly 3');
+check((await act(t5, { type: 'gelvote', picks: [0, 0, 1] })).error, 'picks must differ');
+check((await act(t5, { type: 'gelvote', picks: [0, 1, 9] })).error, 'only behaviours 1-9');
+check((await act(t5, { type: 'g1', answers: [] })).error, 'game 1 not open during the vote');
+check((await act(t5, { type: 'gelvote', picks: [0, 1, 2] })).ok && (await act(t1, { type: 'gelvote', picks: [2, 3, 4] })).ok, 'L5 and L4 can vote');
+check((await act(t5, { type: 'gelvote', picks: [2, 5, 8] })).ok, 'vote can be changed while open');
+v = await view(t5); check(v.me.gvPicks.join() === '2,5,8' && v.gv.voters === 2 && v.gv.counts[2] === 2 && v.gv.counts[0] === 0 && v.gv.l4[3] === 1 && v.gv.l5[8] === 1, 'counts by level and my picks');
+await next(); check((await view(t1)).phase === 'gvres' && (await act(t1, { type: 'gelvote', picks: [0, 1, 2] })).error, 'results close the vote');
+await next(); v = await view(t1); check(v.phase === 'p1' && v.round === 0 && (await view(A)).admin.nextLabel === 'รู้จักตัวเองก่อน →', 'Good GEL slide');
+await next(); check((await view(A)).admin.nextLabel === 'เริ่มเกมที่ 1', 'then รู้จักตัวเองก่อน'); await next(); check((await view(t1)).phase === 'g1', 'then game 1');
+const gx = await rpc('mm_export', A); check(gx.gelVote.voters === 2 && gx.rows.find(r => r.id === L4[0].id)?.gv?.join() === '2,3,4', 'back office export has the votes');
+await adm(A, { cmd: 'resetAll' }); check((await view(A)).phase === 'idle' && (await rpc('mm_export', A)).gelVote.voters === 0, 'reset clears votes');
 console.log(`\nPASS ${ok} checks`); process.exit(0);

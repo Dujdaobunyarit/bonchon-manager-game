@@ -6,7 +6,8 @@ const rpc = async (f, b) => { const r = await fetch(`${U}/rest/v1/rpc/${f}`, { m
 const pw = j('private/passwords.json'), roster = j('data/roster.json'), mg = j('data/managers.json'), extra = +process.argv[2] || 0;
 const A = (await rpc('mm_login', { p_id: pw.adminUser, p_password: pw.admin })).token;
 console.log('groups', await rpc('mm_set_groups', { p_token: A, p_groups: j('data/groups-seed.json') }));
-const row = u => ({ id: u.id, name: u.name, store: u.store, code: u.store.split('-')[0].trim(), managerId: mg[u.id] || '' });
+// The Stone stores share a code with the Bonchon store in the same mall, so their meeting group (from the slide) is set directly
+const row = u => ({ id: u.id, name: u.name, store: u.store, code: u.code || u.store.split('-')[0].trim(), managerId: mg[u.id] || '', ...(u.meet ? { group: String(u.meet) } : {}) });
 const eq = roster.filter(u => u.group === 'equity').map(row);
 const fr = roster.filter(u => u.group === 'franchise').map(row);
 for (let i = 0; i < extra; i++) fr.push({ id: 'T' + (90000 + i), name: 'ทดสอบ ' + i, store: 'BSR-LOAD TEST', code: ['BSR', 'BKH', 'AVA'][i % 3] });

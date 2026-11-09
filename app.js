@@ -20,7 +20,10 @@ const PGROUPS=[['🎓','วัยเรียน',[['Teen Student','ความ
 const PNAME={p1:'พี่เต๋อ',p2:'น้องปันปัน',p3:'พี่คิ้ม',p4:'พ่อมิค',p5:'พรทิพย์',p6:'ป้านวล',p7:'สมชาย',p8:'น้องมายด์',p9:'พ่อต้น',p10:'น้องเฟิร์น'};
 const pAvatar=id=>`<span class="pav pav-${id}" style="background-image:url(img/persona${id.slice(1)}.png)"></span>`;
 const personaMap=(small)=>`<div class="pmapx ${small?'sm':''}"><div class="pm-head"><span class="pm-brand">BONCHON | CUSTOMER SERVICE TRAINING</span><h2>Customer <em>Persona</em></h2><p>7 กลุ่มลูกค้า 10 ตัวละคร จัดตามช่วงชีวิตและสิ่งที่ให้ความสำคัญ</p></div><div class="pm-cols">${PGROUPS.map(([ic,g,types])=>`<div class="pm-col" style="--n:${types.length}"><div class="pm-gh"><span>${ic}</span>${g}</div><div class="pm-types">${types.map(([t,d,ids])=>`<div class="pm-t"><div class="pm-avs">${ids.map(id=>`<div class="pm-av">${pAvatar(id)}<b>${PNAME[id]}</b></div>`).join('')}</div><div class="pm-tag">${t}</div><div class="pm-d">${d}</div></div>`).join('')}</div></div>`).join('')}</div></div>`;
-const DECK={p2:[47,48,49,50,51,52,53,54],p3:[71,72,73]};
+const DECK={p1:[181,182],p2:[47,48,49,50,51,52,53,54],p3:[71,72,73]};
+const GV=[['🏪','เดินดูร้านก่อนลูกค้าเรียก'],['⚠️','แจ้งลูกค้าทันทีเมื่อมีปัญหา'],['💬','สื่อสารงานให้ทีมเข้าใจตรงกัน'],['🤝','ช่วยทีมทันทีเมื่อมีงานค้าง'],['⚙️','ตัดสินใจแก้ปัญหาได้'],['👂','รับฟังลูกค้าจนจบ'],['📋','มอบหมายงานชัดเจน'],['✅','ติดตามงานจนเสร็จ'],['⏰','ตรวจความพร้อมก่อนช่วง Peak']];
+const gvRank=g=>GV.map((b,i)=>({i,n:(g.counts||[])[i]||0,l4:(g.l4||[])[i]||0,l5:(g.l5||[])[i]||0})).sort((a,b)=>b.n-a.n||a.i-b.i);
+const gvChart=(g,mine,small)=>{const r=gvRank(g),max=Math.max(1,r[0].n),v=g.voters||0;let rank=0,prev=-1;return `<div class="gvc ${small?'sm':''}">${r.map((x,k)=>{if(x.n!==prev){rank=k+1;prev=x.n}const top=x.n>0&&rank<=3;return `<div class="gvr ${top?'gtop':''} ${mine&&mine.includes(x.i)?'mine':''}" style="--w:${Math.round(x.n/max*100)}%;--d:${k*.08}s"><span class="gvk">${top?['🥇','🥈','🥉'][rank-1]:rank}</span><span class="gvl"><i>${GV[x.i][0]}</i>${GV[x.i][1]}</span><span class="gvb"><b></b></span><span class="gvn"><b>${x.n}</b><small>${v?Math.round(x.n/v*100):0}%</small></span></div>`}).join('')}</div>`};
 const slideUrl=n=>`${CFG.supabaseUrl}/storage/v1/object/public/slides/p${n}.jpg`;
 const deckNow=()=>{const l=DECK[V.phase]||[];return l[Math.min(V.round,l.length-1)]};
 const gelCard=(a,i,open,fresh)=>open?`<div class="gelc ${fresh?'fresh':''}" style="--gc:${GEL_COL[a]}"><div class="gtop"><span class="gimg"><img src="img/${a}.png" alt=""></span><b>${A[a].th}<small>${A[a].en}</small></b></div><ul><li><i class="k">✓</i><span><em>เก็บไว้</em>${A[a].strength}</span></li><li><i class="x">✗</i><span><em>ทิ้ง</em>${A[a].gap}</span></li><li><i class="b">⇄</i><span><em>ยืมจุดแข็งจาก</em>${A[a].borrow}</span></li></ul></div>`:`<div class="gelc shut" style="--gc:${GEL_COL[a]}"><span>?</span><b>${A[a].th}</b></div>`;
@@ -138,12 +141,12 @@ addEventListener('hashchange',()=>location.reload());
 /* ---------- player ---------- */
 function keyPlayer(){
   const m=V.me,g=m.g3||{},x=V.g3||{};
-  return [V.phase,V.round,V.board,V.recapTab,V.recapOpen||0,m.g1||'',m.submitted?1:0,x.signs||0,(x.signPoints||[]).join(','),g.choice||'',m.group?m.group.no:''].join('|');
+  return [V.phase,V.round,V.board,V.recapTab,V.recapOpen||0,(m.gvPicks||[]).join(','),m.g1||'',m.submitted?1:0,x.signs||0,(x.signPoints||[]).join(','),g.choice||'',m.group?m.group.no:''].join('|');
 }
 function renderPlayer(){
   if(V.phase==='idle'||V.phase==='lobby'){store.del('q:'+V.me.id);store.del(LGKEY());LG.round=-1;seenSigns=-1;learnSeen=-1;gelSeen=-1}
   const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn'||V.phase==='g2_reveal';
-  document.body.className=inForest?'forest':V.phase==='g3_intro'?'g3cover':['g3_board','g3_reveal','g3_scores'].includes(V.phase)?'store':'';
+  document.body.className=(inForest?'forest':V.phase==='g3_intro'?'g3cover':['g3_board','g3_reveal','g3_scores'].includes(V.phase)?'store':'')+(V.phase==='g2_match'&&V.me.canPlay?' nozoom':'');
   MMAudio.scene(V.phase==='g1'||V.phase==='g1_end'?'forest':'none');
   const m=V.me,key=keyPlayer();
   if(!$('.shell'))app.innerHTML=`<div class="shell"><div class="top" id="top"></div><div class="main" id="main"></div></div><div id="ov"></div>`;
@@ -175,6 +178,18 @@ function boardHTML(title='สกอร์บอร์ด'){
 function hello(main,h,s){main.innerHTML=`<div class="center"><div class="critters" style="width:min(420px,90%)">${AK.map(a=>`<img src="img/${a}.png" alt="">`).join('')}</div><h2 class="h brush">${h}</h2><p class="sub">${s}</p></div>`}
 const PV={
   idle(m){hello(m,`สวัสดี ${esc(V.me.name)}!`,'เข้าเกมเรียบร้อย รอแอดมินเริ่มเกมได้เลย')},
+  gvote(m){
+    let done=V.me.gvPicks;const pick=new Set(done||[]);let edit=!done;
+    const draw=()=>{
+      if(!edit){m.innerHTML=`<div class="gvp"><div class="gvp-h"><span class="tag k">GEL ที่มีประสิทธิภาพ</span><h2 class="h brush">ส่งคำตอบแล้ว ✓</h2><p class="sub">คุณเลือก 3 พฤติกรรมนี้ ดูผลรวมบนจอหลักได้เลย</p></div><div class="gvp-list">${done.map(i=>`<div class="gvo on"><i>${GV[i][0]}</i><span>${GV[i][1]}</span></div>`).join('')}</div><button class="btn ghost full" id="gvEdit">แก้ไขคำตอบ</button></div>`;$('#gvEdit').onclick=()=>{edit=true;draw()};return}
+      m.innerHTML=`<div class="gvp"><div class="gvp-h"><span class="tag k">GEL ที่มีประสิทธิภาพ</span><h2 class="h brush">GEL ที่ดี<em>ต้องมีพฤติกรรมอะไร?</em></h2><p class="sub">เลือก <b>3 ข้อ</b> ที่คุณอยากให้ GEL ที่ร้านทำได้ดีที่สุด</p></div><div class="gvp-list">${GV.map(([ic,t],i)=>`<button class="gvo ${pick.has(i)?'on':''}" data-i="${i}"><i>${ic}</i><span>${t}</span><b class="ck">${pick.has(i)?[...pick].indexOf(i)+1:''}</b></button>`).join('')}</div><div class="gvp-foot"><span>เลือกแล้ว <b>${pick.size}</b>/3</span><button class="btn" id="gvSend" ${pick.size===3?'':'disabled'}>ส่งคำตอบ</button></div></div>`;
+      m.querySelectorAll('.gvo').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(pick.has(i))pick.delete(i);else if(pick.size<3)pick.add(i);else{toast('เลือกได้ 3 ข้อ กดข้อเดิมเพื่อเอาออกก่อน');return}draw()});
+      $('#gvSend').onclick=async()=>{$('#gvSend').disabled=true;const j=await act({type:'gelvote',picks:[...pick]});if(j.error){toast(j.error);$('#gvSend').disabled=false;return}V.me.gvPicks=done=[...pick];edit=false;lastKey=keyPlayer();if(MMAudio.good)MMAudio.good();draw()};
+    };
+    draw();
+  },
+  gvres(m){m.innerHTML=`<div class="gvp"><div class="gvp-h"><span class="tag k">ผลโหวต</span><h2 class="h brush">GEL ที่ดี<em>ต้องมีพฤติกรรมอะไร?</em></h2><p class="sub">จาก ${V.gv.voters} คน · คนละ 3 ข้อ${V.me.gvPicks?' · <span class="mk">ข้อที่คุณเลือก</span>':''}</p></div>${gvChart(V.gv,V.me.gvPicks,true)}</div>`},
+  p1(m){m.innerHTML=`<div class="deck-p"><p class="sub">ดูบนจอหลักไปพร้อมกัน</p><img src="${slideUrl(deckNow())}" alt=""></div>`},
   lobby(m){hello(m,`พร้อมแล้ว ${esc(V.me.name)}!`,'อีกสักครู่เกมจะเริ่ม ดูจอหลักไว้นะ')},
   g1(m){V.me.g1?showResult(m,V.me.g1):quiz(m)},
   g1_end(m){V.me.g1?showResult(m,V.me.g1):quiz(m)},
@@ -337,7 +352,7 @@ function keyHost(){const g=V.g3||{};return [V.phase,V.round,V.board,V.recapTab,V
 function renderHost(){
   document.body.className='host';
   if(!$('#stage')){app.innerHTML=`<div id="stage"><div class="brand">TEAM <i>BONCHON</i></div><div id="scr"></div><div id="ovl"></div><div class="bar" id="bar"></div><div id="pn"></div></div>`;fit();}
-  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn'||V.phase==='g2_reveal';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['groups','g2_intro','g3_intro','gel'].includes(V.phase));$('#stage').classList.toggle('frm',['idle','lobby'].includes(V.phase));MMAudio.scene(V.phase==='learn'?'forest':inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');$('#stage').classList.toggle('rcs',V.phase==='g2_reveal');$('#stage').classList.toggle('gelpg',V.phase==='gel');$('#stage').classList.toggle('deckpg',V.phase==='p2'||V.phase==='p3'||V.phase==='pmap');
+  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn'||V.phase==='g2_reveal';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['groups','g2_intro','g3_intro','gel'].includes(V.phase));$('#stage').classList.toggle('frm',['idle','lobby'].includes(V.phase));MMAudio.scene(V.phase==='learn'?'forest':inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');$('#stage').classList.toggle('rcs',V.phase==='g2_reveal');$('#stage').classList.toggle('gelpg',V.phase==='gel');$('#stage').classList.toggle('deckpg',['p1','p2','p3','pmap','gvote'].includes(V.phase));
   drawBar();
   patchHost();
   const key=keyHost();
@@ -378,6 +393,7 @@ function patchHost(){
   set('joined',V.admin.joined.length);
   if(V.g1Done!=null){set('g1done',V.g1Done);for(const a of AK)set('n-'+a,V.g1Counts[a])}
   if(V.g3){set('answered',V.g3.answered)}
+  if(V.gv){set('gvn',V.gv.voters)}
   const chips=$('#chips');
   if(chips){const have=chips.children.length;const list=V.admin.joined;for(let i=have;i<list.length;i++){const d=document.createElement('span');d.className='chip '+(list[i].l==='L4'?'l4':'');d.textContent=list[i].n;chips.prepend(d)}}
 }
@@ -396,6 +412,9 @@ function boardFx(){ // rows move from their old place and scores count up
 }
 function introHost(s,tag,t,lines,img){s.innerHTML=`<div class="scr c"><span class="tag" style="font-size:40px">${tag}</span><h1 class="t1 brush" style="margin:16px 0 26px">${t}</h1><div style="display:flex;gap:30px;align-items:center;font-size:36px;text-align:left">${img?`<img src="${img}" alt="" style="height:440px;border-radius:20px">`:''}<div class="rules" style="width:1100px">${lines.map(l=>`<div>${l}</div>`).join('')}</div></div></div>`}
 const HV={
+  gvote(s){const g=V.gv;s.innerHTML=`<div class="scr deckp gvh"><img src="${slideUrl(180)}" alt="GEL ที่ดีต้องมีพฤติกรรมอะไร"><div class="gvh-pill"><span>📱 เลือก 3 ข้อในมือถือ</span><b><i data-b="gvn">${g.voters}</i>/${g.people}</b><small>คนโหวตแล้ว</small></div></div>`;new Image().src=slideUrl(181)},
+  gvres(s){const g=V.gv;s.innerHTML=`<div class="scr gvres"><div class="gvres-h"><span class="tag k">03 | GEL ที่มีประสิทธิภาพ</span><h1 class="t2">GEL ที่ดี<em>ต้องมีพฤติกรรมอะไร?</em></h1><p>ผลโหวตจาก <b>${g.voters}</b> คน · เลือกคนละ 3 ข้อ</p></div>${gvChart(g,null,false)}</div>`;fanfare()},
+  p1(s){const n=deckNow(),nx=DECK.p1[V.round+1];s.innerHTML=`<div class="scr deckp"><img src="${slideUrl(n)}" alt="สไลด์"></div>`;if(nx)new Image().src=slideUrl(nx)},
   idle(s){s.innerHTML=`<div class="scr fr">${FRAME}<div class="fbox fidle"><span class="tag k">TEAM BONCHON</span><h1 class="t1 brush">Manager <em>Meeting</em> Game</h1><p class="t3">กด Launch เมื่อพร้อมให้ทุกคนเข้าเกม</p></div></div>`},
   lobby(s){
     const url=location.origin+location.pathname;let svg='';
@@ -495,7 +514,7 @@ function openPanel(){
   </div><button class="btn" id="sSave" style="margin-top:12px;min-height:44px">บันทึกคะแนน</button>
   <p style="color:var(--mute);font-size:17px;margin-top:6px">จำนวนป้ายมีผลกับคนที่ยังไม่เริ่มเล่น สมชายมีคำใบ้ 4 ข้อจึงเปิดได้สูงสุด 4 ป้าย</p>
   <h3>ข้ามไปหน้าอื่น</h3><div class="jump">
-    <select id="jg">${[['lobby','Lobby'],['g1','เกม 1'],['g1_end','สรุปเกม 1'],['learn','อธิบายสัตว์ 4 ประเภท'],['groups','แบ่งกลุ่ม'],['g2_intro','เกม 2: กติกา'],['g2_end','สรุปเกม 2'],['gel','สรุปกิจกรรมที่ 1: GEL'],['p2','สไลด์ Part 2 (47–54)'],['g3_intro','เกม 3: กติกา'],['pmap','สรุป Customer Persona'],['final','ผลรวมสุดท้าย'],['p3','สไลด์ข้อมูลสมาชิก (71–73)']].map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><button class="btn k" id="jgo">ไป</button>
+    <select id="jg">${[['lobby','Lobby'],['gvote','โหวตพฤติกรรม GEL'],['gvres','ผลโหวต GEL'],['p1','สไลด์ Good GEL'],['g1','เกม 1'],['g1_end','สรุปเกม 1'],['learn','อธิบายสัตว์ 4 ประเภท'],['groups','แบ่งกลุ่ม'],['g2_intro','เกม 2: กติกา'],['g2_end','สรุปเกม 2'],['gel','สรุปกิจกรรมที่ 1: GEL'],['p2','สไลด์ Part 2 (47–54)'],['g3_intro','เกม 3: กติกา'],['pmap','สรุป Customer Persona'],['final','ผลรวมสุดท้าย'],['p3','สไลด์ข้อมูลสมาชิก (71–73)']].map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><button class="btn k" id="jgo">ไป</button>
     <select id="js">${a.scenarios.map((x,i)=>`<option value="${i}">สถานการณ์ ${x.n}</option>`).join('')}</select><button class="btn k" id="jso">เล่นข้อนี้ใหม่</button>
     <select id="jp">${a.personas.map((x,i)=>`<option value="${i}">${esc(x.name)}</option>`).join('')}</select><button class="btn k" id="jpo">เล่นคนนี้ใหม่</button>
   </div>
@@ -524,7 +543,9 @@ async function exportExcel(){
     {name:'เกม 3 พันธุ์แท้',head:['คนที่','Persona','กลุ่ม','รหัสพนักงาน','ชื่อ','ตอบ','ตอบตอนป้ายที่','ผล','คะแนนฐาน','โบนัส','หักคะแนน','คะแนนรวม'],
       rows:j.g3.map(r=>[r.n,r.persona,r.groupNo,r.id,r.name,r.choice,r.sign,r.correct?'ถูก':'ผิด',r.base,r.bonus,r.penalty,r.pts])},
     {name:'สกอร์บอร์ด',head:['อันดับ','กลุ่ม','AC','รหัสพนักงาน','ชื่อ','คะแนนเกม 2','คะแนนเกม 3','คะแนนรวม','เวลารวม (วินาที)'],rows:j.board.map(r=>[r.rank,r.group,r.nick,r.id,r.name,r.g2,r.g3,r.total,Math.round(r.ms/10)/100])},
-    {name:'ข้อมูลไฟล์',head:['รายการ','ค่า'],rows:[['ดาวน์โหลดเมื่อ',stamp],['พนักงานทั้งหมด',rows.length],['เข้าเกมแล้ว',rows.filter(r=>r.joined).length],['ทำเกม 1 แล้ว',rows.filter(r=>r.animal).length]]},
+    {name:'โหวต GEL สรุป',head:['อันดับ','พฤติกรรม','จำนวนคนเลือก','% ของคนที่โหวต','AC (L4)','Store Manager (L5)'],rows:gvRank(j.gelVote||{}).map((x,k)=>[k+1,GV[x.i][1],x.n,(j.gelVote.voters?Math.round(x.n/j.gelVote.voters*1000)/10:0)+'%',x.l4,x.l5])},
+    {name:'โหวต GEL รายคน',head:['กลุ่ม','AC','รหัสพนักงาน','ชื่อ','ระดับ','สาขา/ตำแหน่ง','พฤติกรรมที่ 1','พฤติกรรมที่ 2','พฤติกรรมที่ 3'],rows:rows.filter(r=>r.gv).map(r=>[r.groupNo,r.nick,r.id,r.name,r.level,r.store,...r.gv.map(i=>GV[i][1])])},
+    {name:'ข้อมูลไฟล์',head:['รายการ','ค่า'],rows:[['ดาวน์โหลดเมื่อ',stamp],['พนักงานทั้งหมด',rows.length],['เข้าเกมแล้ว',rows.filter(r=>r.joined).length],['โหวตพฤติกรรม GEL แล้ว',rows.filter(r=>r.gv).length],['ทำเกม 1 แล้ว',rows.filter(r=>r.animal).length]]},
   ];
   const u=URL.createObjectURL(MMXlsx(sheets)),l=document.createElement('a'),p=n=>String(n).padStart(2,'0');
   l.href=u;l.download=`manager-meeting-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.xlsx`;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('ดาวน์โหลดแล้ว');
