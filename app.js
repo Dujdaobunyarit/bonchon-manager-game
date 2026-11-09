@@ -16,6 +16,9 @@ let learnSeen=-1;
 const GEL_COL={bull:'#e31b23',eagle:'#f0a500',rat:'#e85c8a',bear:'#2f6fd6'};
 const GEL_ACTS=[['SEE FIRST','เห็นปัญหาก่อนลูกค้าต้องเรียก','1, 3, 5, 7'],['COMMUNICATE FIRST','แจ้งลูกค้าทันที ไม่ปล่อยให้รอโดยไม่มีคำตอบ','2, 4, 10'],['COORDINATE TEAM','สื่อสารและประสานทีมให้แก้ปัญหาได้จริง','3, 6, 8'],['OWN THE PROBLEM','รับผิดชอบปัญหา ไม่โยนให้คนอื่น','4, 6, 9, 10'],['FOLLOW THROUGH','ตรวจสอบผลจนลูกค้าได้รับการแก้ไขครบ','2, 5, 8, 9']];
 let gelSeen=-1;
+const DECK={p2:[47,48,49,50,51,52,53,54],p3:[71,72,73]};
+const slideUrl=n=>`${CFG.supabaseUrl}/storage/v1/object/public/slides/p${n}.jpg`;
+const deckNow=()=>{const l=DECK[V.phase]||[];return l[Math.min(V.round,l.length-1)]};
 const gelCard=(a,i,open,fresh)=>open?`<div class="gelc ${fresh?'fresh':''}" style="--gc:${GEL_COL[a]}"><div class="gtop"><span class="gimg"><img src="img/${a}.png" alt=""></span><b>${A[a].th}<small>${A[a].en}</small></b></div><ul><li><i class="k">✓</i><span><em>เก็บไว้</em>${A[a].strength}</span></li><li><i class="x">✗</i><span><em>ทิ้ง</em>${A[a].gap}</span></li><li><i class="b">⇄</i><span><em>ยืมจุดแข็งจาก</em>${A[a].borrow}</span></li></ul></div>`:`<div class="gelc shut" style="--gc:${GEL_COL[a]}"><span>?</span><b>${A[a].th}</b></div>`;
 const gelHead='<span class="gtag">BONCHON | RECAP กิจกรรมที่ 1</span><h1 class="gh">สรุปกิจกรรมที่ 1: พฤติกรรม 4 ประเภท สู่ <em>GEL</em></h1><p class="gsub"><b>ทุกคนปรับสไตล์ได้</b> | เลือกวิธีสื่อสารให้เหมาะกับคน แต่ต้องรักษามาตรฐาน Service เดียวกัน</p>';
 const gelFoot='<b>GEL ที่พร้อมนำทีม</b> = เร็วแบบกระทิง • สร้างพลังแบบอินทรี • ใส่ใจแบบหนู • แม่นยำแบบหมี';
@@ -197,6 +200,8 @@ const PV={
   },
   g2_scores(m){m.innerHTML=boardHTML(`คะแนนหลังสถานการณ์ที่ ${V.scenario.n}`)},
   g2_end(m){m.innerHTML=boardHTML('จบเกมที่ 2')},
+  p2(m){m.innerHTML=`<div class="deck-p"><p class="sub">ดูบนจอหลักไปพร้อมกัน</p><img src="${slideUrl(deckNow())}" alt=""></div>`},
+  p3(m){m.innerHTML=`<div class="deck-p"><p class="sub">ดูบนจอหลักไปพร้อมกัน</p><img src="${slideUrl(deckNow())}" alt=""></div>`},
   gel(m){const n=V.round;m.innerHTML=`<div class="gelp-p">${n>=5?gelActs():gelHead+`<div class="ggrid-p">${AK.map((a,i)=>gelCard(a,i,i<n,false)).join('')}</div>${n>=4?`<div class="gfoot on">${gelFoot}</div>`:''}`}</div>`},
   g3_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 3</span><h2 class="h brush cover-t">แฟน<em>พันธุ์แท้</em> ลูกค้า</h2>${neon('7','sm')}<p class="persona-t">CUSTOMER PERSONA</p>${faces()}<div class="rules"><div>เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน</div><div>ยิ่งเปิดป้ายน้อย ยิ่งได้เยอะ <b>100 → 75 → 50 → 25 → 10 pt</b></div><div>ตอบได้ครั้งเดียว ส่งแล้วล็อกทันที เฉลยพร้อมกันตอนท้าย</div><div>คนแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b> คนเดียวเท่านั้น</div><div>คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า</div></div></div>`},
   g3_board:g3Player,
@@ -322,7 +327,7 @@ function keyHost(){const g=V.g3||{};return [V.phase,V.round,V.board,V.recapTab,V
 function renderHost(){
   document.body.className='host';
   if(!$('#stage')){app.innerHTML=`<div id="stage"><div class="brand">TEAM <i>BONCHON</i></div><div id="scr"></div><div id="ovl"></div><div class="bar" id="bar"></div><div id="pn"></div></div>`;fit();}
-  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn'||V.phase==='g2_reveal';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['groups','g2_intro','g3_intro','gel'].includes(V.phase));$('#stage').classList.toggle('frm',['idle','lobby'].includes(V.phase));MMAudio.scene(V.phase==='learn'?'forest':inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');$('#stage').classList.toggle('rcs',V.phase==='g2_reveal');$('#stage').classList.toggle('gelpg',V.phase==='gel');
+  $('#stage').classList.toggle('nobar',barHidden);const inForest=V.phase==='g1'||V.phase==='g1_end'||V.phase==='learn'||V.phase==='g2_reveal';$('#stage').classList.toggle('forest',inForest);$('#stage').classList.toggle('deco',!inForest&&['groups','g2_intro','g3_intro','gel'].includes(V.phase));$('#stage').classList.toggle('frm',['idle','lobby'].includes(V.phase));MMAudio.scene(V.phase==='learn'?'forest':inForest?'forest':'music');$('#stage').classList.toggle('store',['g3_board','g3_reveal','g3_scores'].includes(V.phase));$('#stage').classList.toggle('g3cover',V.phase==='g3_intro');$('#stage').classList.toggle('rcs',V.phase==='g2_reveal');$('#stage').classList.toggle('gelpg',V.phase==='gel');$('#stage').classList.toggle('deckpg',V.phase==='p2'||V.phase==='p3');
   drawBar();
   patchHost();
   const key=keyHost();
@@ -417,6 +422,8 @@ const HV={
   },
   g2_scores(s){s.innerHTML=`<div class="scr sb">${sbPage(`สกอร์บอร์ด หลังสถานการณ์ที่ ${V.scenario.n}`)}</div>`},
   g2_end(s){s.innerHTML=`<div class="scr sb">${sbPage('จบเกมที่ 2')}</div>`;fanfare()},
+  p2(s){const n=deckNow(),nx=DECK.p2[V.round+1];s.innerHTML=`<div class="scr deckp"><img src="${slideUrl(n)}" alt="สไลด์ ${n}"></div>`;if(nx)new Image().src=slideUrl(nx)},
+  p3(s){const n=deckNow(),nx=DECK.p3[V.round+1];s.innerHTML=`<div class="scr deckp"><img src="${slideUrl(n)}" alt="สไลด์ ${n}"></div>`;if(nx)new Image().src=slideUrl(nx)},
   gel(s){
     const n=V.round,fresh=gelSeen>=0&&n===gelSeen+1?n-1:-1;gelSeen=n;
     if(n>=5){s.innerHTML=`<div class="scr gelp acts">${gelActs()}</div>`;if(fresh===4){fanfare();confetti(80)}return}
@@ -477,7 +484,7 @@ function openPanel(){
   </div><button class="btn" id="sSave" style="margin-top:12px;min-height:44px">บันทึกคะแนน</button>
   <p style="color:var(--mute);font-size:17px;margin-top:6px">จำนวนป้ายมีผลกับคนที่ยังไม่เริ่มเล่น สมชายมีคำใบ้ 4 ข้อจึงเปิดได้สูงสุด 4 ป้าย</p>
   <h3>ข้ามไปหน้าอื่น</h3><div class="jump">
-    <select id="jg">${[['lobby','Lobby'],['g1','เกม 1'],['g1_end','สรุปเกม 1'],['learn','อธิบายสัตว์ 4 ประเภท'],['groups','แบ่งกลุ่ม'],['g2_intro','เกม 2: กติกา'],['g2_end','สรุปเกม 2'],['gel','สรุปกิจกรรมที่ 1: GEL'],['g3_intro','เกม 3: กติกา'],['final','ผลรวมสุดท้าย']].map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><button class="btn k" id="jgo">ไป</button>
+    <select id="jg">${[['lobby','Lobby'],['g1','เกม 1'],['g1_end','สรุปเกม 1'],['learn','อธิบายสัตว์ 4 ประเภท'],['groups','แบ่งกลุ่ม'],['g2_intro','เกม 2: กติกา'],['g2_end','สรุปเกม 2'],['gel','สรุปกิจกรรมที่ 1: GEL'],['p2','สไลด์ Part 2 (47–54)'],['g3_intro','เกม 3: กติกา'],['final','ผลรวมสุดท้าย'],['p3','สไลด์ข้อมูลสมาชิก (71–73)']].map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><button class="btn k" id="jgo">ไป</button>
     <select id="js">${a.scenarios.map((x,i)=>`<option value="${i}">สถานการณ์ ${x.n}</option>`).join('')}</select><button class="btn k" id="jso">เล่นข้อนี้ใหม่</button>
     <select id="jp">${a.personas.map((x,i)=>`<option value="${i}">${esc(x.name)}</option>`).join('')}</select><button class="btn k" id="jpo">เล่นคนนี้ใหม่</button>
   </div>

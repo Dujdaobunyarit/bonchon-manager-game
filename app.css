@@ -594,3 +594,10 @@ body.store .center{min-height:0}
 .cdc .cnode{flex:1 0 auto;font-size:clamp(13px,2.75vw,17px);line-height:1.32}
 #stage.gelpg .brand{display:none}
 .gelc li{font-size:36px}
+
+/* deck pages */
+#stage.deckpg .brand{display:none}
+.scr.deckp{padding:0;background:#fff;display:grid;place-items:center}
+.scr.deckp img{width:100%;height:100%;object-fit:contain;animation:fadeIn .45s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.deck-p img{display:block;width:100%;height:auto;border-radius:10px;box-shadow:0 6px 20px #0003;background:#fff}
