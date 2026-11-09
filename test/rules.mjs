@@ -16,6 +16,7 @@ await db.exec(read('supabase/update_6.sql'));
 await db.exec(read('supabase/update_7.sql'));
 await db.exec(read('supabase/update_8.sql'));
 await db.exec(read('supabase/update_9.sql'));
+await db.exec(read('supabase/update_10.sql'));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -139,7 +140,7 @@ v = await view(t5); check(v.phase === 'g2_match' && !v.cards, 'countdown auto-op
 // game 3
 await adm(A, { cmd: 'goto', phase: 'g3_intro' }); await next(); v = await view(t1);
 const P = content.personas[0];
-check(v.phase === 'g3_board' && v.g3.clues.length === 4 && v.g3.clues.every(x => x === null) && !v.g3.persona, 'game 3 starts closed, persona hidden');
+check(v.phase === 'g3_board' && v.g3.clues.length === 5 && v.g3.clues.every(x => x === null) && !v.g3.persona, 'game 3 starts closed, persona hidden');
 check(!JSON.stringify(v).includes(P.tag), 'hashtag not sent early');
 check((await act(t1, { type: 'g3', choice: P.id })).error, 'no answer before first sign');
 await next(); v = await view(t1); check(v.g3.clues[0] === P.clues[0] && v.g3.clues[1] === null, 'sign 1 opens, others hidden');
@@ -157,12 +158,12 @@ const mc = n => mon.coaches.find(x => x.name === L4[n].name);
 check(mc(0).g3.correct === false && mc(1).g3.correct === true && mc(2).g3 === null, 'monitor shows who is right, wrong and not answered');
 check(mon.groups.length === 10 && mon.joined >= 5, 'monitor shows group progress');
 await next(); await act(t4, { type: 'g3', choice: P.id });  // second correct on sign 2: 75 + 14
-await next(); await next(); await act(t3, { type: 'g3', choice: P.id }); // third correct on sign 4: 25 + 13
-await next(); v = await view(t1);
+await next(); await next(); await act(t3, { type: 'g3', choice: P.id }); // third correct on sign 4: 40
+await next(); await next(); v = await view(t1);
 check(v.phase === 'g3_reveal' && v.g3.persona.name === P.name && v.g3.correctCount === 3 && v.me.result.pts === 0, 'wrong first answer scores 0 at reveal');
-check((await view(t2)).me.result.pts === 115 && (await view(t4)).me.result.pts === 75 && (await view(t3)).me.result.pts === 25, 'only the first right answer gets the bonus: 115, 75, 25');
+check((await view(t2)).me.result.pts === 115 && (await view(t4)).me.result.pts === 80 && (await view(t3)).me.result.pts === 40, 'only the first right answer gets the bonus: 115, 80, 40');
 await next(); v = await view(t1);
-const g2t = [115, 114, 50]; check(b(v, 1).g3 === 115 && b(v, 0).g3 === 0 && b(v, 2).g3 === 25, 'game 3 points accumulate');
+const g2t = [115, 114, 50]; check(b(v, 1).g3 === 115 && b(v, 0).g3 === 0 && b(v, 2).g3 === 40, 'game 3 points accumulate');
 const exAll = await rpc('mm_export', A);
 fs.writeFileSync('/tmp/claude-503/export.json', JSON.stringify(exAll));
 check(exAll.g2.length >= 1 && exAll.g2.every(r => r.pairs && r.order >= 1 && r.title) && exAll.g3.length >= 1 && exAll.g3.every(r => r.persona && r.choice), 'export has game 2 and 3 detail');

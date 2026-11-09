@@ -1,15 +1,15 @@
 'use strict';
 const A = {
-  bull:{th:'กระทิง',en:'BULL',dir:'N',strength:'คิดไว ทำไว รับผิดชอบ',gap:'ใจร้อน พูดแรง ข้ามขั้นตอน',borrow:'หนู + หมี',ideal:'ตัดสินใจเร็วแต่พูดสุภาพ สั่งงานด้วย 3Cs ไม่ตะโกน ไม่ข้าม Step',talk:'สั้น ตรง ให้อำนาจ บอกเส้นที่ห้ามข้าม',c:'#e8541e'},
-  eagle:{th:'อินทรี',en:'EAGLE',dir:'E',strength:'พูดเป็น สร้างพลัง ชวนทีมลุย',gap:'พูดเยอะ ลืมงาน ไม่ตามผล',borrow:'หมี',ideal:'Think Ahead แล้ว Follow up จนจบ',talk:'บอกเหตุผล ถามความเห็น กำหนดเวลา',c:'#b9791f'},
-  rat:{th:'หนู',en:'RAT',dir:'S',strength:'ใส่ใจ รับฟัง สร้างทีมเวิร์ก',gap:'เกรงใจ ไม่กล้าพูด ไม่กล้าตัดสินใจ',borrow:'กระทิง',ideal:'ใส่ใจ แต่กล้าเตือนน้องทันทีเมื่อผิดมาตรฐาน และกล้ารับข้อร้องเรียนด้วย BLAST',talk:'อบอุ่น ให้ประโยคสำเร็จรูป ส่งต่อได้',c:'#7c7c88'},
-  bear:{th:'หมี',en:'BEAR',dir:'W',strength:'รอบคอบ แม่นยำ ทำตามมาตรฐาน',gap:'ยึดติด ช้า ไม่ยืดหยุ่น',borrow:'อินทรี + กระทิง',ideal:'ยึด SOP แต่จัดลำดับความสำคัญได้ตอน Peak (SEE → PRIORITIZE → ACT)',talk:'ชัดเจน เป็นขั้นตอน บอกลำดับสำคัญ',c:'#a8672a'},
+  bull:{th:'กระทิง',en:'BULL',dir:'D',strength:'คิดไว ทำไว รับผิดชอบ',gap:'ใจร้อน พูดแรง ข้ามขั้นตอน',borrow:'หนู + หมี',ideal:'ตัดสินใจเร็วแต่พูดสุภาพ สั่งงานด้วย 3Cs ไม่ตะโกน ไม่ข้าม Step',talk:'สั้น ตรง ชัด บอกเป้าหมาย',c:'#e8541e'},
+  eagle:{th:'อินทรี',en:'EAGLE',dir:'I',strength:'พูดเป็น สร้างพลัง ชวนทีมลุย',gap:'พูดเยอะ ลืมงาน ไม่ตามผล',borrow:'หมี',ideal:'Think Ahead แล้ว Follow up จนจบ',talk:'พูดคุย เปิดโอกาสให้เสนอไอเดีย / ชื่นชม',c:'#b9791f'},
+  rat:{th:'หนู',en:'RAT',dir:'S',strength:'ใส่ใจ รับฟัง สร้างทีมเวิร์ก',gap:'เกรงใจ ไม่กล้าพูด ไม่กล้าตัดสินใจ',borrow:'กระทิง',ideal:'ใส่ใจ แต่กล้าเตือนน้องทันทีเมื่อผิดมาตรฐาน และกล้ารับข้อร้องเรียนด้วย BLAST',talk:'ให้กำลังใจ อธิบายการเปลี่ยนแปลง',c:'#7c7c88'},
+  bear:{th:'หมี',en:'BEAR',dir:'C',strength:'รอบคอบ แม่นยำ ทำตามมาตรฐาน',gap:'ยึดติด ช้า ไม่ยืดหยุ่น',borrow:'อินทรี + กระทิง',ideal:'ยึด SOP แต่จัดลำดับความสำคัญได้ตอน Peak (SEE → PRIORITIZE → ACT)',talk:'ให้ข้อมูล ขั้นตอน และ Checklist',c:'#a8672a'},
 };
 const LEARN = [
-  {a:'bull',dir:'N',th:'กระทิง',en:'BULL',tips:[['⚡','สั้น ตรง'],['🎯','ให้อำนาจ'],['🚧','และบอกสิ่งที่ห้ามข้าม']]},
-  {a:'eagle',dir:'E',th:'อินทรี',en:'EAGLE',tips:[['💡','บอกเหตุผลก่อน'],['💬','ถามความเห็น'],['📅','และกำหนด deadline กับนิยามงานเสร็จ']]},
-  {a:'rat',dir:'S',th:'หนู',en:'RAT',tips:[['❤️','อบอุ่น'],['🗨️','ให้ประโยคสำเร็จรูป'],['👍','และให้สิทธิ์ส่งต่อเรื่องให้หัวหน้า']]},
-  {a:'bear',dir:'W',th:'หมี',en:'BEAR',tips:[['⚙️','ชัดเจน'],['📋','เป็นขั้นตอน'],['🔍','และบอกลำดับความสำคัญ']]},
+  {a:'bull',dir:'D',th:'กระทิง',en:'BULL',tips:[['⚡','สั้น ตรง ชัด'],['🎯','ระบุเป้าหมาย'],['🏁','และผลลัพธ์ที่ต้องการ']]},
+  {a:'eagle',dir:'I',th:'อินทรี',en:'EAGLE',tips:[['💬','พูดคุย ชวนมีส่วนร่วม'],['💡','เปิดโอกาสให้เสนอไอเดีย'],['👏','ให้กำลังใจ และชื่นชม']]},
+  {a:'rat',dir:'S',th:'หนู',en:'RAT',tips:[['🤝','ให้ความมั่นใจ'],['🪜','อธิบายอย่างเป็นขั้นตอน'],['🌱','และค่อย ๆ ปรับ']]},
+  {a:'bear',dir:'C',th:'หมี',en:'BEAR',tips:[['📋','ให้ข้อมูลและรายละเอียด'],['✅','มีขั้นตอน / Checklist'],['🔁','และ Check Back']]},
 ];
 const learnCard=(l,i,open,fresh)=>`<div class="lcard ${open?'open':''} ${fresh?'fresh':''}" style="--d:${i*.4}s"><div class="flipper"><div class="face fback"><b>${l.dir}</b><span>?</span><small>${l.en}</small></div><div class="face front"><i class="dirb">${l.dir}</i><div class="stagef"><span class="glow"></span><img class="a-3d" src="img/${l.a}.png" alt="${l.th}"><span class="shadow"></span></div><h3>${l.th}<small>${l.en}</small></h3><ul>${l.tips.map((t,k)=>`<li style="--k:${k}"><em>${t[0]}</em>${t[1]}</li>`).join('')}</ul></div></div></div>`;
 let learnSeen=-1;
@@ -134,7 +134,7 @@ addEventListener('hashchange',()=>location.reload());
 /* ---------- player ---------- */
 function keyPlayer(){
   const m=V.me,g=m.g3||{},x=V.g3||{};
-  return [V.phase,V.round,V.board,V.recapTab,V.recapOpen||0,m.g1||'',m.submitted?1:0,x.signs||0,g.choice||'',m.group?m.group.no:''].join('|');
+  return [V.phase,V.round,V.board,V.recapTab,V.recapOpen||0,m.g1||'',m.submitted?1:0,x.signs||0,(x.signPoints||[]).join(','),g.choice||'',m.group?m.group.no:''].join('|');
 }
 function renderPlayer(){
   if(V.phase==='idle'||V.phase==='lobby'){store.del('q:'+V.me.id);store.del(LGKEY());LG.round=-1;seenSigns=-1;learnSeen=-1;gelSeen=-1}
@@ -194,7 +194,7 @@ const PV={
   },
   g2_reveal(m){
     const r=V.me.result;
-    const yours=V.me.canPlay?`<div class="yours">${r?`ถูก ${r.correct}/4 คู่ ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัสคนแรก ${r.bonus})`:''}`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
+    const yours=V.me.canPlay?`<div class="yours">${r?`ถูก ${r.correct}/4 คู่ ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัสกลุ่มแรก ${r.bonus})`:''}`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
     const wrong=V.recapTab==='wrong',n=V.recapOpen??4;
     m.innerHTML=`${spectBanner()}${yours}<div class="pverd ${wrong?'bad':'good'}">${wrong?'✗ พูดผิดสไตล์':'✓ พูดถูกสไตล์'}</div><div class="round">สถานการณ์ที่ ${V.scenario.n}</div><h2 class="scen" style="margin-bottom:4px">${esc(V.scenario.title)}</h2><p class="sub" style="margin-bottom:12px">เป้าหมาย: ${esc(V.scenario.goal)}</p>
     ${recapList().map((x,i)=>i<n?`<div class="rcard prc ${wrong?'bad':'good'}"><img src="img/${x.a}.png" alt=""><div><b>${A[x.a].th}</b>${wrong?`<span class="rsay">“${esc(unq(x.wrong.say))}”</span><small>→ ${esc(x.wrong.result)}</small>`:`<span class="rcmd">${esc(x.cmd)}</span>`}</div></div>`:`<div class="rcard prc wait"><img src="img/${x.a}.png" alt=""><div><b>${A[x.a].th}</b><small>รอเปิดที่จอหลัก</small></div></div>`).join('')}`;
@@ -205,11 +205,11 @@ const PV={
   p2(m){m.innerHTML=`<div class="deck-p"><p class="sub">ดูบนจอหลักไปพร้อมกัน</p><img src="${slideUrl(deckNow())}" alt=""></div>`},
   p3(m){m.innerHTML=`<div class="deck-p"><p class="sub">ดูบนจอหลักไปพร้อมกัน</p><img src="${slideUrl(deckNow())}" alt=""></div>`},
   gel(m){const n=V.round;m.innerHTML=`<div class="gelp-p">${n>=5?gelActs():gelHead+`<div class="ggrid-p">${AK.map((a,i)=>gelCard(a,i,i<n,false)).join('')}</div>${n>=4?`<div class="gfoot on">${gelFoot}</div>`:''}`}</div>`},
-  g3_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 3</span><h2 class="h brush cover-t">แฟน<em>พันธุ์แท้</em> ลูกค้า</h2>${neon('7','sm')}<p class="persona-t">CUSTOMER PERSONA</p>${faces()}<div class="rules"><div>เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน</div><div>ยิ่งเปิดป้ายน้อย ยิ่งได้เยอะ <b>100 → 80 → 60 → 40 → 20 pt</b></div><div>ตอบได้ครั้งเดียว ส่งแล้วล็อกทันที เฉลยพร้อมกันตอนท้าย</div><div>คนแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b> คนเดียวเท่านั้น</div><div>คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า</div></div></div>`},
+  g3_intro(m){m.innerHTML=`${spectBanner()}<div class="center"><span class="tag">เกมที่ 3</span><h2 class="h brush cover-t">แฟน<em>พันธุ์แท้</em> ลูกค้า</h2>${neon('7','sm')}<p class="persona-t">CUSTOMER PERSONA</p>${faces()}<div class="rules"><div>เปิดป้ายทีละแผ่น ทายให้ถูกว่าคือลูกค้าคนไหน</div><div>ยิ่งเปิดป้ายน้อย ยิ่งได้เยอะ <b>100 → 80 → 60 → 40 → 20 pt</b></div><div>ตอบได้ครั้งเดียว ส่งแล้วล็อกทันที เฉลยพร้อมกันตอนท้าย</div><div>กลุ่มแรกที่ตอบถูกได้โบนัสอีก <b>15 pt</b> กลุ่มเดียวเท่านั้น</div><div>คะแนนรวมเท่ากัน ตัดสินด้วยเวลารวมที่ตอบ เร็วกว่าอันดับดีกว่า</div></div></div>`},
   g3_board:g3Player,
   g3_reveal(m){
     const p=V.g3.persona,r=V.me.result;
-    const yours=V.me.canPlay?`<div class="yours">${r&&r.sign!=null?`ตอบถูก ป้ายที่ ${r.sign+1} ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัสคนแรก ${r.bonus})`:''}`:r?`ตอบไม่ถูก รอบนี้ <b>${r.pts} pt</b>`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
+    const yours=V.me.canPlay?`<div class="yours">${r&&r.sign!=null?`ตอบถูก ป้ายที่ ${r.sign+1} ได้ <b>+${r.pts} pt</b>${r.bonus?` (โบนัสกลุ่มแรก ${r.bonus})`:''}`:r?`ตอบไม่ถูก รอบนี้ <b>${r.pts} pt</b>`:'รอบนี้ไม่ได้ส่งคำตอบ'}</div>`:'';
     m.innerHTML=`${spectBanner()}${yours}<div class="center" style="min-height:0"><img class="reveal-img" src="img/${p.img}" alt=""><h2 class="h brush">${esc(p.name)}</h2><p class="tag">${esc(p.tag)}</p></div><div class="signs">${V.g3.clues.map((c,i)=>`<div class="sign"><span>${esc(c)}</span></div>`).join('')}</div>`;
     if(r&&r.sign!=null)confetti(40);
   },
@@ -479,7 +479,7 @@ function openPanel(){
     <div><label>เกม 2: ถูกครบ 4 คู่</label><input id="sFull" type="number" min="0" value="${s.fullPoints}"></div>
     <div><label>เกม 2: ถูก 2 คู่</label><input id="sHalf" type="number" min="0" value="${s.halfPoints}"></div>
     <div><label>เกม 2: ถูก 1 คู่</label><input id="sOne" type="number" min="0" value="${s.onePoints??25}"></div>
-    <div><label>โบนัสคนแรกที่ถูก (คนเดียว)</label><input id="sBonus" type="number" min="0" value="${s.bonusStart}"></div>
+    <div><label>โบนัสกลุ่มแรกที่ถูก (กลุ่มเดียว)</label><input id="sBonus" type="number" min="0" value="${s.bonusStart}"></div>
     <div><label>เกม 3: หักคะแนนเมื่อตอบผิด</label><input id="sPen" type="number" min="0" value="${s.wrongPenalty}"></div>
     <div><label>เกม 3: จำนวนแผ่นป้าย (1–5)</label><input id="sCount" type="number" min="1" max="5" value="${s.signCount}"></div>
     <div style="grid-column:span 2"><label>คะแนนแต่ละป้าย คั่นด้วยจุลภาค</label><input id="sPts" value="${s.signPoints.join(', ')}"></div>
