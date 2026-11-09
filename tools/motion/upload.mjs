@@ -5,7 +5,8 @@ const c = fs.readFileSync(R + 'config.js', 'utf8'), U = /supabaseUrl: '([^']+)'/
 const H = { apikey: K, 'Content-Type': 'application/json' };
 const A = (await (await fetch(`${U}/rest/v1/rpc/mm_login`, { method: 'POST', headers: H, body: JSON.stringify({ p_id: pw.adminUser, p_password: pw.admin }) })).json()).token;
 let ok = 0;
-for (let n = 1; n <= 10; n++) {
+const only = process.argv.slice(2).map(Number);
+for (let n = 1; n <= 10; n++) { if (only.length && !only.includes(n)) continue;
   const f = fs.readFileSync(`${R}motion-output/s${n}.mp4`);
   const j = await (await fetch(`${U}/functions/v1/motion-upload`, { method: 'POST', headers: H, body: JSON.stringify({ token: A, action: 'sign', n }) })).json();
   if (!j.url) { console.log(n, 'sign failed', j.error); continue; }
@@ -15,5 +16,5 @@ for (let n = 1; n <= 10; n++) {
   if (good) ok++;
   console.log(`s${n}`, up.status, h.status, h.headers.get('content-type'), (size / 1048576).toFixed(1) + ' MB', good ? 'ok' : 'FAILED');
 }
-console.log(`uploaded ${ok}/10`);
+console.log(`uploaded ${ok}`);
 fs.writeFileSync('/tmp/claude-503/up-token.txt', A);

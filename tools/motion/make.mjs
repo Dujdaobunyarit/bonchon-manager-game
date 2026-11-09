@@ -76,7 +76,7 @@ const level = (v, t) => { const i = Math.floor(t * SR), n = 900; if (i < 0 || i 
 
 const ASK = [1.95, 2.6, 3, 3.35];
 async function render(sc) {
-  const lines = clipLines(sc), raw = splitVoice(loadVoice('s' + sc.n), sc.n <= 2 ? lines : lines.slice(0, -1), sc.n === 9 ? [5.92, 9.82, 10.68] : undefined);
+  const lines = clipLines(sc), raw = splitVoice(loadVoice('s' + sc.n), sc.n <= 2 ? lines : lines.slice(0, -1), sc.n === 9 ? [6.26, 9.1, 11.13] : undefined);
   const parts = raw.slice(0, sc.beats.length + 1), vQuote = loadVoice('q' + sc.n), trim = v => { let a = 0, b = v.length - 1; while (a < b && Math.abs(v[a]) < .01) a++; while (b > a && Math.abs(v[b]) < .01) b--; return v.slice(Math.max(0, a - 800), Math.min(v.length, b + 3000)); };
   const beats = [
     { kind: 'title', v: parts[0], sub: '', pad: .55, sfx: [[0, 'whoosh'], [.15, 'stamp'], [.45, 'pop']] },

@@ -9,6 +9,7 @@ export const LOOKS = {
   f4: { g: 'f', hair: 'long', hc: '#6b4029', skin: '#f9bb9e', top: 'jacket', c1: '#5f86b8', c2: '#466a98', inner: '#fbf7ef', pants: '#3a3f4c', cuff: '#53596a', shoe: '#b0352d' },
   m4: { g: 'm', hair: 'side', hc: '#8d9196', skin: '#eea283', top: 'shirt', c1: '#3f8b63', c2: '#2d6b4a', pants: '#3a3a3d', cuff: '#515155', shoe: '#2c2622', beard: true },
   f5: { g: 'f', hair: 'bob', hc: '#141110', skin: '#eda684', top: 'shirt', c1: '#ef86a4', c2: '#cf6484', skirt: '#f0e6d8', shoe: '#44352e' },
+  m6: { g: 'm', hair: 'short', hc: '#1b1512', skin: '#e9a07f', top: 'polo', c1: '#e8a23a', c2: '#b97a1d', pants: '#3b3d44', cuff: '#555863', shoe: '#ffffff' },
   m5: { g: 'm', hair: 'spiky', hc: '#0f0d0c', skin: '#d98e6b', top: 'stripe', c1: '#f5f1e9', c2: '#d7141a', pants: '#3b4f6e', cuff: '#50688c', shoe: '#ffffff' },
 };
 const INK = '#1a1412';

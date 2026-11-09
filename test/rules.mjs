@@ -14,6 +14,7 @@ await db.exec(read('supabase/update_4.sql'));
 await db.exec(read('supabase/update_5.sql'));
 await db.exec(read('supabase/update_6.sql'));
 await db.exec(read('supabase/update_7.sql'));
+await db.exec(read('supabase/update_8.sql'));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -127,7 +128,7 @@ await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 2, clear: true }); await 
 const sc2 = content.scenarios[2], c2 = Object.fromEntries(Object.keys(sc2.commands).map(k => [k, v.cards.find(x => x.t === sc2.commands[k]).id]));
 const ids = Object.values(c2);
 await act(t1, { type: 'g2', map: { bull: c2.eagle, eagle: c2.rat, rat: c2.bull, bear: c2.bear } });
-await adm(A, { cmd: 'next' }); check((await view(t1)).me.result.pts === 0, 'one pair right scores 0');
+await adm(A, { cmd: 'next' }); check((await view(t1)).me.result.pts === 25, 'one pair right scores 25');
 await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 2, clear: true }); await adm(A, { cmd: 'goto', phase: 'g2_motion', round: 0 }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); await adm(A, { cmd: 'next' }); v = await view(t1);
 await adm(A, { cmd: 'board', on: true }); check((await view(t5)).scoreboard, 'admin shows scoreboard to all'); await adm(A, { cmd: 'board', on: false });
 // countdown auto-advance
@@ -200,4 +201,6 @@ await adm(A, { cmd: 'resetAll' });
 // last round transitions
 await adm(A, { cmd: 'goto', phase: 'g2_motion', round: content.scenarios.length - 1 }); for (let i = 0; i < 13; i++) await next();
 check((await view(A)).admin.nextLabel === 'สรุปเกมที่ 2', 'last scenario leads to summary'); await next(); check((await view(A)).phase === 'g2_end', 'game 2 end');
+check((await view(A)).admin.nextLabel === 'สรุปกิจกรรมที่ 1 →', 'game 2 end leads to the GEL recap'); await next(); check((await view(t1)).phase === 'gel' && (await view(t1)).round === 0, 'GEL recap opens closed');
+for (let i = 1; i <= 5; i++) { await next(); check((await view(t1)).round === i, `GEL step ${i}`); } await next(); check((await view(t1)).phase === 'g3_intro', 'GEL recap leads to game 3');
 console.log(`\nPASS ${ok} checks`); process.exit(0);

@@ -49,7 +49,7 @@ export const SCENES = [
   ],
 },
 {
-  n: 4, bg: 'dining', title: 'ลืมคีย์ออเดอร์ เมนูไม่มา', quote: 'ลูกค้าในร้านมีแค่ 3 ถึง 4 โต๊ะ ทานเซตหมดแล้ว เมนูที่สั่งก็ยังไม่มา ความใส่ใจไม่มีเลย', quotePose: quotePose('f2'),
+  n: 4, bg: 'dining', title: 'ลืมคีย์ออเดอร์ เมนูไม่มา', quote: 'สั่งอาหารเพิ่มไปตั้งนานแล้ว ทานเมนูอื่นหมดแล้ว แต่เมนูที่สั่งเพิ่มยังไม่มา ต้องเรียกพนักงานมาถามเอง ถึงรู้ว่าออร์เดอร์ยังไม่เข้าครัว ไม่มีใครแจ้งอะไรเลย', quotePose: quotePose('f2'),
   beats: [
     { mood: 'happy', talk: [.35, 1], say: 'ลูกค้าสั่งเพิ่ม 1 อย่าง', sfx: [[.35, 'pop'], [.9, 'type'], [1.05, 'type'], [1.2, 'type']], draw(f, t) { const { c } = f; custAt(f, 'f2', t); f.table(c, FX, FY); f.plate(c, FX + 70, FY - 8, .9); person(f, 'm_stand', 760, t, 620); f.pad(c, 860, 610 + Math.sin(t * 8) * 3); pop(f, t, .35, k => f.bubble(c, FX + 40, 280, 230, 110, '+1', { s: k, size: 72, color: f.RED, tail: -30 })); } },
     { mood: 'neutral', say: 'พนักงานรับออเดอร์ แต่ไม่ได้คีย์', sub: 'พนักงานรับออเดอร์ แต่ไม่ได้คีย์', min: 4, focus: [760, 500], zoom: .03, sfx: [[1.1, 'wrong', .7]], draw(f, t) {
@@ -91,11 +91,24 @@ export const SCENES = [
   ],
 },
 {
-  n: 9, bg: 'counter', title: 'ถูกลูกค้าเตือน แล้วจ้องหน้าไม่พอใจ', quoteBg: 'counter', quote: 'ไม่มั่นใจเรื่องความสะอาดของร้าน และพนักงานยืนจ้องหน้าไม่พอใจ ไม่สำนึกผิด', quotePose: (f, t) => { f.sprite(f.c, 'f5', 300, 1020, 780, { dy: f.bob(t, 1, 3) }); },
+  n: 9, bg: 'dining', title: 'ลูกค้าแจ้งปัญหา พนักงานตอบห้วนและไม่ช่วยแก้ไข', quote: 'ผมแจ้งว่าจานอาหารไม่ครบ แต่พนักงานตอบสั้น ๆ ว่า ‘เดี๋ยวเช็กให้’ แล้วก็เดินไป โดยไม่กลับมาอัปเดตหรือช่วยแก้ไขอะไรเลย', quotePose: quotePose('m6'),
   beats: [
-    { mood: [[0, 'neutral'], [.5, 'shock'], [1.6, 'annoyed']], say: 'ลูกค้าเห็นพนักงาน ใส่รองเท้าเหยียบเคาน์เตอร์เตรียมอาหาร', sub: 'ลูกค้าเห็นพนักงานใส่รองเท้าเหยียบเคาน์เตอร์เตรียมอาหาร', min: 4.8, focus: [960, 640], zoom: .012, sfx: [[.45, 'thud', .7], [1.6, 'wrong', .5]], draw(f, t) { const { c } = f; const y = 526 - f.back(f.prog(t, 0, .45)) * 0; f.sprite(c, 'm_stand', 1090, 526 + (1 - f.eo(f.prog(t, 0, .45))) * 130, 430, { dy: f.bob(t, 1.2, 2) }); f.burst(c, 1090, 520, f.prog(t, .4, .45)); pop(f, t, 1.5, k => { c.save(); c.translate(1090, 526); c.scale(k, k); c.strokeStyle = f.RED; c.lineWidth = 12; c.beginPath(); c.ellipse(0, -14, 150, 46, 0, 0, 7); c.stroke(); c.restore(); }); f.sprite(c, 'f5', 400, 950, 560, breathe(f, t)); } },
-    { mood: 'annoyed', talk: [.1, 1.5], say: 'จึงเตือน', min: 2, cut: false, sfx: [[.15, 'huh']], draw(f, t) { const { c } = f; f.sprite(c, 'm_stand', 1090, 526, 430); f.sprite(c, 'f5', 400, 950, 560, breathe(f, t)); pop(f, t, .1, k => f.bubble(c, 560, 350, 470, 120, 'น้องคะ ตรงนี้ไม่ได้นะคะ', { s: k, size: 38, tail: -110 })); } },
-    { mood: [[0, 'shock'], [1, 'sad']], say: 'พนักงานยืนจ้องหน้า ด้วยท่าทีไม่พอใจ', sub: 'พนักงานยืนจ้องหน้า ด้วยท่าทีไม่พอใจ', min: 4, focus: [960, 640], zoom: .012, sfx: [[.2, 'stamp', .7], [1.2, 'sad', .6]], draw(f, t) { const { c } = f; f.sprite(c, 'm_furious', 1090, 526, 430, { dy: f.bob(t, 3, 1) }); f.sprite(c, 'f5', 400, 950, 560, breathe(f, t)); c.strokeStyle = f.RED; c.lineWidth = 10; c.setLineDash([26, 20]); c.lineDashOffset = -t * 90; const k = f.prog(t, .15, .4); c.beginPath(); c.moveTo(1040, 160); c.lineTo(f.lerp(1040, 510, k), f.lerp(160, 460, k)); c.stroke(); c.setLineDash([]); pop(f, t, .9, b => f.emote(c, '!', 560, 400, b)); } },
+    { mood: [[0, 'neutral'], [.9, 'annoyed']], raise: [.2, 2.6], talk: [.5, 1.7], say: 'เมื่อลูกค้าแจ้งปัญหา', min: 3.6, sfx: [[.5, 'huh']], draw(f, t) {
+      const { c } = f; custAt(f, 'm6', t); f.table(c, FX, FY); f.plate(c, FX - 90, FY - 8, .82); f.plate(c, FX + 95, FY - 8, .82, 'empty');
+      const k = f.prog(t, 0, 1.1); person(f, 'm_stand', f.lerp(260, 760, f.eo(k)), t, 610, k < 1 ? walk(f, t) : {});
+      pop(f, t, .5, b => f.bubble(c, FX - 30, 280, 380, 120, 'จานอาหารไม่ครบครับ', { s: b, size: 40, tail: -60 }));
+      pop(f, t, 1.4, b => { c.save(); c.strokeStyle = f.RED; c.lineWidth = 6; c.setLineDash([12, 10]); c.beginPath(); c.ellipse(FX + 95, FY - 12, 92, 30, 0, 0, 7); c.stroke(); c.restore(); f.emote(c, '?', FX + 95, FY - 80, b * .8); });
+    } },
+    { mood: [[0, 'annoyed'], [1.6, 'shock']], say: 'พนักงานตอบห้วน', min: 3.4, cut: false, focus: [960, 520], zoom: .03, sfx: [[.3, 'pop'], [1.5, 'whoosh', .4]], draw(f, t) {
+      const { c } = f; custAt(f, 'm6', t); f.table(c, FX, FY); f.plate(c, FX - 90, FY - 8, .82); f.plate(c, FX + 95, FY - 8, .82, 'empty');
+      const k = f.prog(t, 1.4, 1.4); person(f, 'm_bored', f.lerp(760, 140, f.eio(k)), t, 610, k > 0 && k < 1 ? { ...walk(f, t), flip: true } : k >= 1 ? { flip: true } : {});
+      pop(f, t, .3, b => { if (k < .25) f.bubble(c, 790, 250, 300, 110, 'เดี๋ยวเช็กให้', { s: b, size: 46, stroke: f.RED, color: f.RED, tail: -20 }); });
+    } },
+    { mood: [[0, 'annoyed'], [1.6, 'angry']], say: 'และไม่ช่วยแก้ไข', min: 4.4, sfx: [0, .5, 1, 1.5, 2, 2.5, 3].map(t => [t, 'tick', .7]).concat([[3.2, 'sad', .7]]), draw(f, t) {
+      const { c } = f; custAt(f, 'm6', t); f.table(c, FX, FY); f.plate(c, FX - 90, FY - 8, .82, 'bones'); f.plate(c, FX + 95, FY - 8, .82, 'empty'); f.emote(c, '?', FX + 95, FY - 80, .8);
+      const m = Math.floor(f.prog(t, .1, 2.9) * 21); f.clock(c, 620, 300, 120, m / 60, `${m} นาที`); person(f, 'f_back', 230, t, 470, { a: .95 });
+      if (t > 1.6) angry(f, t, FX + 118, 300, 1.6);
+    } },
   ],
 },
 {

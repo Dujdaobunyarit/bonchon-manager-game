@@ -550,3 +550,47 @@ body.store .center{min-height:0}
 @keyframes sbglow{0%,100%{box-shadow:0 0 0 0 #ffc42e99}50%{box-shadow:0 0 22px 5px #ffc42e99}}
 #stage.sbp .bar .ghost.on{background:var(--gold);color:var(--ink);border-color:#c79a12}
 #stage.sbp .bar #bBoard{background:var(--red);border-color:#ff5a55;color:#fff}
+
+/* L5 watching the AC screen */
+.wa{gap:12px}.wa-zoo{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:100%;margin-top:6px}
+.wa-a{width:100%;height:auto;filter:drop-shadow(0 8px 8px #0003);animation:waBob 1.6s ease-in-out infinite;animation-delay:calc(var(--i)*.2s);transform-origin:50% 100%}
+@keyframes waBob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-12%) rotate(3deg)}}
+.wa-bub{position:relative;background:var(--red);color:#fff;border-radius:18px;padding:14px 16px;font-weight:700;font-size:clamp(18px,4.8vw,26px);width:100%;text-align:center;box-shadow:0 6px 0 #8f0d11}
+.wa-bub:before{content:"";position:absolute;left:50%;top:-12px;margin-left:-12px;border:12px solid transparent;border-top:0;border-bottom-color:var(--red)}
+.pmap{margin:6px 0 12px;background:#fff;border-radius:14px;padding:4px;box-shadow:0 6px 18px #0002}.pmap img{display:block;width:100%;height:auto;border-radius:10px}
+.cnode,.rcmd{white-space:pre-line}
+
+/* GEL recap */
+.gelp{padding:30px 60px 20px!important;gap:10px;align-items:stretch}
+.gtag{align-self:flex-start;background:var(--red);color:#fff;font-weight:800;border-radius:10px;padding:4px 16px;font-size:22px}
+.gh{margin:4px 0 0;font-size:58px;font-weight:800;line-height:1.15}.gh em{color:var(--red);font-style:normal}
+.gsub{margin:0;font-size:28px;color:#444}.gsub b{color:var(--red)}.gsub2{color:var(--red);font-weight:800;letter-spacing:.04em}
+.ggrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:8px}
+.gelc{background:#f4f4f4;border-radius:26px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 26px #0002;animation:pop .45s both}
+.gelc.fresh{animation:gelIn .8s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes gelIn{0%{transform:rotateY(90deg) scale(.8);opacity:0}100%{transform:none;opacity:1}}
+.gtop{background:var(--gc);display:flex;align-items:center;gap:14px;padding:16px 18px;color:#fff}
+.gimg{width:118px;height:118px;flex:none;border-radius:50%;background:#fff;display:grid;place-items:center;border:5px solid #ffffffcc;overflow:hidden}.gimg img{width:92%;height:92%;object-fit:contain;animation:waBob 2.2s ease-in-out infinite}
+.gtop b{font-size:46px;line-height:1.05}.gtop small{display:block;font-size:22px;letter-spacing:.12em;opacity:.9}
+.gelc ul{list-style:none;margin:0;padding:18px 20px;display:flex;flex-direction:column;justify-content:space-evenly;flex:1;gap:12px}
+.gelc li{display:flex;gap:14px;align-items:flex-start;font-size:32px;line-height:1.25;font-weight:600}
+.gelc li i{flex:none;font-style:normal;font-weight:800;font-size:34px;width:46px;text-align:center}.gelc li .k{color:#12a150}.gelc li .x{color:var(--red)}.gelc li .b{color:var(--gc)}
+.gelc li em{display:block;font-style:normal;font-size:22px;color:#777;font-weight:700}
+.gelc.fresh li{animation:liin .45s both}.gelc.fresh li:nth-child(1){animation-delay:.6s}.gelc.fresh li:nth-child(2){animation-delay:.85s}.gelc.fresh li:nth-child(3){animation-delay:1.1s}
+.gelc.shut{background:var(--gc);color:#fff;align-items:center;justify-content:center;cursor:pointer;animation:lfloat 3.4s ease-in-out infinite}
+.gelc.shut span{font-size:170px;font-weight:800;font-style:italic;line-height:1;text-shadow:0 8px 0 #0003}.gelc.shut b{font-size:48px}
+.gfoot{background:var(--red);color:#fff;border-radius:22px;padding:14px 26px;font-size:30px;text-align:center;visibility:hidden}.gfoot.on{visibility:visible;animation:slide .5s both}
+.gacts{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;gap:12px;margin-top:6px}
+.gact{display:grid;grid-template-columns:90px 380px 1fr auto;align-items:center;gap:20px;background:#f4f4f4;border-left:12px solid var(--red);border-radius:18px;padding:16px 26px;box-shadow:0 8px 20px #0002;animation:gactIn .55s both;animation-delay:calc(.25s + var(--k)*.35s)}
+@keyframes gactIn{from{transform:translateX(-80px);opacity:0}to{transform:none;opacity:1}}
+.gact b{color:var(--red);font-size:48px}.gact .en{font-size:34px;font-weight:800}.gact .th{font-size:32px;font-weight:600}.gact .sc{font-size:22px;color:#777;font-weight:700}
+.gelp-p .gtag{font-size:14px}.gelp-p .gh{font-size:clamp(24px,6.6vw,34px)}.gelp-p .gsub{font-size:16px;margin:4px 0 10px}
+.ggrid-p{display:flex;flex-direction:column;gap:10px}.ggrid-p .gelc.shut{min-height:84px;flex-direction:row;gap:14px}.ggrid-p .gelc.shut span{font-size:48px}.ggrid-p .gelc.shut b{font-size:24px}
+.ggrid-p .gimg{width:64px;height:64px;border-width:3px}.ggrid-p .gtop{padding:10px 12px}.ggrid-p .gtop b{font-size:26px}.ggrid-p .gtop small{font-size:13px}
+.ggrid-p .gelc ul{padding:10px 12px;gap:8px}.ggrid-p .gelc li{font-size:17px}.ggrid-p .gelc li i{font-size:20px;width:26px}.ggrid-p .gelc li em{font-size:13px}
+.gelp-p .gfoot{font-size:16px;padding:10px 12px;margin-top:10px;border-radius:14px}
+.gelp-p .gacts{gap:8px}.gelp-p .gact{grid-template-columns:44px 1fr;gap:4px 10px;padding:10px 12px;border-left-width:8px}
+.gelp-p .gact b{font-size:24px;grid-row:span 3}.gelp-p .gact .en{font-size:17px}.gelp-p .gact .th{font-size:16px}.gelp-p .gact .sc{font-size:13px}
+.cdc .cnode{flex:1 0 auto;font-size:clamp(13px,2.75vw,17px);line-height:1.32}
+#stage.gelpg .brand{display:none}
+.gelc li{font-size:36px}
