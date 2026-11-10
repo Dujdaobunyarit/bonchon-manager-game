@@ -43,6 +43,17 @@ const step = async (label, f, wantPhase) => {
   console.log(`${label}: viewers updated ${seen.length}/${n0}`); line('  admin click to viewer screen', seen); line('  admin click to coach signal', coachSig); phaseFired = 0;
 };
 await step('launch', () => adm({ cmd: 'next' }));
+await step('recap', () => adm({ cmd: 'next' }));
+await step('reality check', () => adm({ cmd: 'next' }));
+await step('GEL vote opens', () => adm({ cmd: 'next' }));
+// everyone votes 3 behaviours within 30 s
+stats.rpc.mm_act = [];
+await Promise.all(users.map(async x => { await sleep(Math.random() * 30000); const s = new Set(); while (s.size < 3) s.add(Math.floor(Math.random() * 9)); const r = await rpc('mm_act', { p_token: x.t, p_body: { type: 'gelvote', picks: [...s] } }); if (!r.ok) stats.errors.gelvote = (stats.errors.gelvote || 0) + 1; await rpc('mm_view', { p_token: x.t }); }));
+line('GEL vote submit', stats.rpc.mm_act); stats.rpc.mm_act = [];
+const gv = (await rpc('mm_view', { p_token: A })).gv; console.log(`  votes counted ${gv.voters}/${users.length}`);
+await step('vote results', () => adm({ cmd: 'next' }));
+await step('Good GEL', () => adm({ cmd: 'next' }));
+await step('know yourself', () => adm({ cmd: 'next' }));
 await step('start game 1', () => adm({ cmd: 'next' }));
 // everyone finishes game 1 within 45 s
 const Q = (await rpc('mm_assessment', { p_token: A })).questions; const ans = Q.map(() => 0);
@@ -60,7 +71,7 @@ let cv = await rpc('mm_view', { p_token: coaches[0].t });
 const sc = content.scenarios[0], map = Object.fromEntries(Object.keys(sc.commands).map(k => [k, cv.cards.find(x => x.t === sc.commands[k]).id]));
 stats.rpc.mm_act = []; let ts = Date.now();
 const rr = await Promise.all(coaches.map(c => rpc('mm_act', { p_token: c.t, p_body: { type: 'g2', map } })));
-console.log(`10 coaches submit together: ${rr.filter(r => r.ok).length}/10 in ${Date.now() - ts} ms`);
+console.log(`${coaches.length} coaches submit together: ${rr.filter(r => r.ok).length}/${coaches.length} in ${Date.now() - ts} ms`);
 await step('reveal', () => adm({ cmd: 'next' }));
 await step('open answers', () => adm({ cmd: 'recapOpenAll' }));
 await step('wrong style', () => adm({ cmd: 'next' }));
@@ -70,7 +81,7 @@ const b = (await rpc('mm_view', { p_token: A })).scoreboard.map(r => r.total); c
 await adm({ cmd: 'goto', phase: 'g3_board', round: 0, clear: true });
 await step('open sign 1', () => adm({ cmd: 'next' }));
 ts = Date.now(); const pid = content.personas[0].id; const r3 = await Promise.all(coaches.map((c, i) => rpc('mm_act', { p_token: c.t, p_body: { type: 'g3', choice: i % 2 ? pid : 'p7' } })));
-console.log(`game 3 answers: ${r3.filter(r => r.ok).length}/10 in ${Date.now() - ts} ms`);
+console.log(`game 3 answers: ${r3.filter(r => r.ok).length}/${coaches.length} in ${Date.now() - ts} ms`);
 for (let i = 0; i < 3; i++) await adm({ cmd: 'next' });
 const mon = []; for (let i = 0; i < 10; i++) { const s = Date.now(); await rpc('mm_monitor', { p_token: A }); mon.push(Date.now() - s); await sleep(200); } line('back office refresh', mon);
 await step('reveal game 3', () => adm({ cmd: 'next' }));
