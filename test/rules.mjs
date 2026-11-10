@@ -21,6 +21,7 @@ await db.exec(read('supabase/update_11.sql'));
 await db.exec(read('supabase/update_12.sql'));
 await db.exec(read("supabase/update_13.sql"));
 await db.exec(read("supabase/update_14.sql"));
+await db.exec(read("supabase/update_15.sql"));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };
@@ -73,7 +74,7 @@ check((await adm(t1, { cmd: 'next' })).error, 'player cannot run admin commands'
 check((await rpc('mm_export', t1)).error, 'player cannot export');
 // game 1
 await next(); check((await act(t1, { type: 'g1', answers: [] })).error, 'cannot play before start');
-for (let i = 0; i < 5; i++) await next(); check((await view(t1)).phase === 'g1', 'launch → vote → results → 2 slides → game 1');
+for (let i = 0; i < 7; i++) await next(); check((await view(t1)).phase === 'g1', 'launch → recap → reality check → vote → results → 2 slides → game 1');
 const Q = (await rpc('mm_assessment', t1)).questions;
 check(Q.length === assess.questions.length && !JSON.stringify(Q).includes('"a"'), 'quiz hides animal mapping');
 const r5 = await act(t5, { type: 'g1', answers: assess.questions.map(q => q.options.findIndex(o => o.a === 'rat')) });
@@ -211,7 +212,7 @@ check((await view(A)).admin.nextLabel === 'สรุปกิจกรรมท�
 for (let i = 1; i <= 5; i++) { await next(); check((await view(t1)).round === i, `GEL step ${i}`); } check((await view(A)).admin.nextLabel === 'Part 2 รู้จักลูกค้า →', 'GEL recap leads to Part 2 slides'); await next(); check((await view(t1)).phase === 'p2' && (await view(t1)).round === 0, 'Part 2 slide 47 shows on every screen');
 for (let i = 1; i <= 7; i++) await next(); check((await view(t1)).round === 7 && (await view(A)).admin.nextLabel === 'ไปเกมที่ 3 →', 'Part 2 runs through slide 54'); await next(); check((await view(t1)).phase === 'g3_intro', 'slides lead to game 3');
 await adm(A, { cmd: 'goto', phase: 'g3_board', round: 9 }); for (let i = 0; i < 9 && (await view(A)).phase !== 'g3_scores'; i++) await next(); check((await view(A)).admin.nextLabel === '📋 สรุป Customer Persona →', 'last persona leads to the summary'); await next(); check((await view(t1)).phase === 'pmap' && (await view(A)).admin.nextLabel === '🏆 สรุปผล', 'summary page then final results'); await next(); check((await view(t1)).phase === 'final', 'final results');
-await adm(A, { cmd: 'goto', phase: 'final' }); check((await view(A)).admin.nextLabel === 'ข้อมูลสมาชิก →', 'final results lead to member slides'); await next(); check((await view(t1)).phase === 'p3' && (await view(t1)).round === 0, 'slide 71'); await next(); await next(); check((await view(t1)).round === 2 && !(await view(A)).admin.nextLabel, 'slide 73 is the last page'); await next(); check((await view(t1)).round === 2, 'no step past slide 73');
+await adm(A, { cmd: 'goto', phase: 'final' }); check((await view(A)).admin.nextLabel === 'ข้อมูลสมาชิก →', 'final results lead to member slides'); await next(); check((await view(t1)).phase === 'p3' && (await view(t1)).round === 0, 'slide 71'); await next(); await next(); check((await view(t1)).round === 2 && (await view(A)).admin.nextLabel === 'สไลด์ถัดไป →', 'slide 73 then the new pages'); await next(); await next(); await next(); check((await view(t1)).round === 5 && !(await view(A)).admin.nextLabel, 'GEL Key Takeaway is the last page'); await next(); check((await view(t1)).round === 5, 'no step past the last page');
 // extra characters stand for one of the 7 personas
 await adm(A, { cmd: 'goto', phase: 'g3_board', round: 9, clear: true }); v = await view(t1);
 check(v.g3N === 10 && v.choices.length === 7 && !v.choices.some(c => c.id === 'p8'), 'ten rounds, seven choices');
@@ -230,7 +231,7 @@ await act(t2, { type: 'g3', choice: P3.id }); await next(); check((await view(A)
 await adm(A, { cmd: 'openSign', i: 4 }); await adm(A, { cmd: 'openSign', i: 2 }); check((await view(A)).admin.nextLabel === 'เฉลย', 'all five open in mixed order');
 await next(); v = await view(t2); check(v.phase === 'g3_reveal' && v.me.result.pts === 80 + 15 && v.g3.clues.every(Boolean), 'two signs open (any order) scores 80');
 // GEL behaviour vote before game 1
-await adm(A, { cmd: 'goto', phase: 'lobby' }); check((await view(A)).admin.nextLabel === 'GEL ที่ดีต้องมีพฤติกรรมอะไร? →', 'lobby leads to the GEL vote');
+await adm(A, { cmd: 'goto', phase: 'lobby' }); check((await view(A)).admin.nextLabel === 'Recap Q3 →', 'lobby leads to the recap'); await next(); check((await view(t5)).phase === 'p0' && (await view(A)).admin.nextLabel === 'GEL Reality Check →', 'recap page'); await next(); check((await view(t5)).round === 1 && (await view(A)).admin.nextLabel === 'GEL ที่ดีต้องมีพฤติกรรมอะไร? →', 'reality check leads to the GEL vote');
 check((await act(t5, { type: 'gelvote', picks: [0, 1, 2] })).error, 'no vote before it opens');
 await next(); v = await view(t5); check(v.phase === 'gvote' && v.gv.voters === 0 && v.gv.counts.length === 9, 'vote opens with 9 behaviours');
 check((await act(t5, { type: 'gelvote', picks: [0, 1] })).error, 'must pick exactly 3');
@@ -245,4 +246,10 @@ await next(); v = await view(t1); check(v.phase === 'p1' && v.round === 0 && (aw
 await next(); check((await view(A)).admin.nextLabel === 'เริ่มเกมที่ 1', 'then รู้จักตัวเองก่อน'); await next(); check((await view(t1)).phase === 'g1', 'then game 1');
 const gx = await rpc('mm_export', A); check(gx.gelVote.voters === 2 && gx.rows.find(r => r.id === L4[0].id)?.gv?.join() === '2,3,4', 'back office export has the votes');
 await adm(A, { cmd: 'resetAll' }); check((await view(A)).phase === 'idle' && (await rpc('mm_export', A)).gelVote.voters === 0, 'reset clears votes');
+// logging out leaves the joined list
+await adm(A, { cmd: 'resetAll' }); const tq = (await login(L4[6].id, PW.user)).token; await view(tq);
+check((await view(A)).admin.joined.length === 1, 'joined after first view');
+const tq2 = (await login(L4[6].id, PW.user)).token; await rpc('mm_logout', tq2);
+check((await view(A)).admin.joined.length === 1, 'still joined while signed in on another device');
+await rpc('mm_logout', tq); check((await view(A)).admin.joined.length === 0 && (await view(tq)).error === 'login', 'logout removes the person and ends the session');
 console.log(`\nPASS ${ok} checks`); process.exit(0);
