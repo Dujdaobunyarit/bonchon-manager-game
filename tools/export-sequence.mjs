@@ -18,11 +18,11 @@ const pick = (a, n) => [...a].sort(() => Math.random() - .5).slice(0, n);
 const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', ['--headless=new', '--remote-debugging-port=9333', `--user-data-dir=${OUT}/chrome`, '--window-size=1920,1080', '--autoplay-policy=no-user-gesture-required', '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' });
 let target; for (let i = 0; i < 50 && !target; i++) { await sleep(300); try { target = (await (await fetch('http://127.0.0.1:9333/json/list')).json()).find(t => t.type === 'page'); } catch {} }
 const ws = new WebSocket(target.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
-let seq = 0; const waits = new Map(); ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id && waits.has(m.id)) { waits.get(m.id)(m); waits.delete(m.id); } };
+let seq = 0; const waits = new Map(), errs = []; ws.onmessage = e => { const m = JSON.parse(e.data); if (m.method === 'Runtime.exceptionThrown') errs.push(m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text); if (m.id && waits.has(m.id)) { waits.get(m.id)(m); waits.delete(m.id); } };
 const cdp = (method, params = {}) => new Promise(r => { const id = ++seq; waits.set(id, r); ws.send(JSON.stringify({ id, method, params })); });
 const ev = async expr => (await cdp('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true })).result?.result?.value;
 await cdp('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
-await cdp('Page.enable'); await cdp('Page.navigate', { url: BASE }); await sleep(2500);
+await cdp('Page.enable'); await cdp('Runtime.enable'); await cdp('Page.navigate', { url: BASE }); await sleep(2500);
 await ev(`(async()=>{const j=await rpc('mm_login',{p_id:${JSON.stringify(pw.adminUser)},p_password:${JSON.stringify(pw.admin)}});token=j.token;store.set('tok',token);connect();})()`); await sleep(2000);
 await ev(`(async()=>{await cmd({cmd:'resetAll'})})()`); await sleep(1500);
 
@@ -104,5 +104,5 @@ fs.writeFileSync(`${OUT}/sequence.html`, html);
 await cdp('Page.navigate', { url: 'file://' + OUT + '/sequence.html' }); await sleep(2500);
 const pdf = (await cdp('Page.printToPDF', { landscape: true, printBackground: true, paperWidth: 11.69, paperHeight: 8.27, marginTop: .4, marginBottom: .4, marginLeft: .4, marginRight: .4, preferCSSPageSize: true })).result.data;
 fs.writeFileSync(`${OUT}/sequence.pdf`, Buffer.from(pdf, 'base64'));
-console.log('pages', n, 'pdf', fs.statSync(`${OUT}/sequence.pdf`).size);
+console.log('page errors', errs.length, errs.slice(0, 5)); console.log('pages', n, 'pdf', fs.statSync(`${OUT}/sequence.pdf`).size);
 ws.close(); chrome.kill(); process.exit(0);
