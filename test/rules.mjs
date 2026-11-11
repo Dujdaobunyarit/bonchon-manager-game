@@ -24,6 +24,7 @@ await db.exec(read("supabase/update_14.sql"));
 await db.exec(read("supabase/update_15.sql"));
 await db.exec(read("supabase/update_16.sql"));
 await db.exec(read("supabase/update_17.sql"));
+await db.exec(read("supabase/update_18.sql"));
 await db.exec('set role anon');
 let ok = 0; const check = (c, m) => { assert.ok(c, m); ok++; console.log('  ✓', m); };
 const rpc = async (fn, ...a) => { const ph = a.map((_, i) => `$${i + 1}`).join(','); const r = await db.query(`select public.${fn}(${ph}) v`, a); return r.rows[0].v; };

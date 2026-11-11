@@ -1208,3 +1208,10 @@ div.gvo{grid-template-columns:44px 1fr}
 .msx:not(.sm) .ms-tlrow{gap:14px}.msx:not(.sm) .ms-tlrow .ms-tagline{white-space:nowrap;font-size:21px;padding:6px 26px}
 .msx:not(.sm) .ms-gfoot span{padding:0 10px;font-size:12px;white-space:nowrap}.msx:not(.sm) .ms-gfoot .ic{font-size:26px}
 .msx:not(.sm) .ms-mind small{font-size:17px;line-height:1.25}.msx:not(.sm) .ms-p2{font-size:22px}
+
+/* game 2: 2-minute timer */
+.g2t{margin-left:auto;align-self:center;display:flex;align-items:center;gap:12px;background:#1d1d1d;color:#fff;border-radius:999px;padding:8px 30px;font-weight:800;box-shadow:0 8px 20px #0004;animation:pop .4s both}
+.g2t span{font-size:40px}.g2t b{font-size:60px;font-variant-numeric:tabular-nums;color:#ffd84d;line-height:1}.g2t em{display:none;font-style:normal;font-size:44px}
+.g2t.done{background:var(--red);animation:pulse 1.2s ease-in-out infinite}.g2t.done b,.g2t.done span{display:none}.g2t.done em{display:block}
+.g2t.off{display:none}
+.main .g2t{margin:0 auto 10px;width:max-content;padding:6px 22px}.main .g2t span{font-size:22px}.main .g2t b{font-size:30px}.main .g2t em{font-size:22px}

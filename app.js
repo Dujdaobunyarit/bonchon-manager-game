@@ -235,6 +235,12 @@ function patchPlayer(){
   document.querySelectorAll('[data-b=cd]').forEach(e=>e.textContent=cdLeft());
 }
 const cdLeft=()=>Math.max(0,Math.ceil((V.endsAt-svNow())/1000));
+// game 2: 2-minute thinking timer on the matching page (display only; the admin still presses เฉลย)
+const mmss=t=>Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
+const g2Timer=()=>`<div class="g2t ${V.endsAt?(cdLeft()?'':'done'):'off'}"><span>⏱</span><b data-b="cd2">${V.endsAt?mmss(cdLeft()):''}</b><em>หมดเวลา!</em></div>`;
+setInterval(()=>{if(!V||V.phase!=='g2_match')return;const t=cdLeft(),txt=V.endsAt?mmss(t):'';
+  document.querySelectorAll('[data-b=cd2]').forEach(e=>{if(e.textContent!==txt){e.textContent=txt;if(V.admin&&V.endsAt&&t>0&&t<=10&&location.hash!=='#backoffice')beep()}});
+  document.querySelectorAll('.g2t').forEach(e=>{e.classList.toggle('done',!!V.endsAt&&t===0);e.classList.toggle('off',!V.endsAt)})},250);
 setInterval(()=>{if(!V)return;document.querySelectorAll('[data-b=cd]').forEach(e=>{const t=String(cdLeft());if(e.textContent!==t){e.textContent=t;if(V.admin&&+t>0&&location.hash!=='#backoffice')beep()}})},100);
 const watchText=()=>V.me.group?`ไปดูจอหลักของ AC ${esc(V.me.group.nick)} (กลุ่ม ${V.me.group.no})`:'ไปดูจอหลักกับ Area Coach ของคุณ';
 const spectBanner=()=>V.me.canPlay?'':`<div class="spectate">👀 ${watchText()}</div>`;
@@ -280,7 +286,7 @@ const PV={
   g2_match(m){
     if(!V.me.canPlay) return discScreen(m,esc(V.scenario.title),`AC กำลังจับคู่คำสั่ง สถานการณ์ที่ ${V.scenario.n}/${V.g2N}`);
     if(V.me.submitted) return m.innerHTML=waitHTML('ส่งแล้ว รอเฉลยนะ','แอดมินกำลังรอทุกคน · ส่งแล้ว <span data-b="submitted"></span>')+'',patchPlayer();
-    linkGame(m);
+    linkGame(m);m.insertAdjacentHTML('afterbegin',g2Timer());
   },
   g2_reveal(m){
     const r=V.me.result;
@@ -523,7 +529,7 @@ const HV={
     });
   },
   g2_countdown(s){s.innerHTML=`<div class="scr c"><p class="t3">เตรียมโยงคำสั่ง!</p><div class="cd go" data-b="cd">${cdLeft()}</div><p class="t2 brush">${esc(V.scenario.title)}</p></div>`},
-  g2_match(s){s.innerHTML=`<div class="scr"><div style="display:flex;gap:18px;align-items:baseline;margin-top:12px"><span class="tag" style="font-size:28px">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</span><h1 class="t2 brush" style="font-size:54px">${esc(V.scenario.title)}</h1></div><div class="hanimals">${AK.map(a=>`<div class="hanimal"><img src="img/${a}.png" alt=""><div><b>${A[a].th}</b><small>${A[a].talk}</small></div></div>`).join('')}</div><div class="hmatch"><div class="hcards">${V.cards.map(c=>`<div class="hcard">${esc(c.t)}</div>`).join('')}</div><div class="hside"><div class="clock"></div><div class="t3">ส่งคำตอบแล้ว</div><div class="big" style="font-size:96px" data-b="submitted"></div><div class="t3">กลุ่ม</div></div></div></div>`},
+  g2_match(s){s.innerHTML=`<div class="scr"><div style="display:flex;gap:18px;align-items:baseline;margin-top:12px"><span class="tag" style="font-size:28px">สถานการณ์ที่ ${V.scenario.n}/${V.g2N}</span><h1 class="t2 brush" style="font-size:54px">${esc(V.scenario.title)}</h1>${g2Timer()}</div><div class="hanimals">${AK.map(a=>`<div class="hanimal"><img src="img/${a}.png" alt=""><div><b>${A[a].th}</b><small>${A[a].talk}</small></div></div>`).join('')}</div><div class="hmatch"><div class="hcards">${V.cards.map(c=>`<div class="hcard">${esc(c.t)}</div>`).join('')}</div><div class="hside"><div class="clock"></div><div class="t3">ส่งคำตอบแล้ว</div><div class="big" style="font-size:96px" data-b="submitted"></div><div class="t3">กลุ่ม</div></div></div></div>`},
   g2_reveal(s){
     const w=V.recapTab==='wrong',n=V.recapOpen??4,list=recapList(),k=recapKey(),fresh=recapSeen.k===k&&n===recapSeen.n+1?n-1:-1;recapSeen={k,n};
     s.innerHTML=`<div class="scr rcscr"><div class="rhead ${w?'bad':'good'}"><span class="rbadge">${w?'✗ พูดผิดสไตล์':'✓ พูดถูกสไตล์'}</span><div class="rht"><h1>${esc(V.scenario.title)}</h1><p>เป้าหมายร่วม: ${esc(V.scenario.goal)}${w?'':` · ถูกครบ ${V.allCorrect??0} กลุ่ม`}</p></div></div><div class="rgrid">${list.map((x,i)=>recapCard(x,i,i<n,i===fresh,w)).join('')}</div></div>`;
