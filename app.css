@@ -1192,3 +1192,12 @@ div.gvo{grid-template-columns:44px 1fr}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 .hsign.wait{opacity:.55;cursor:not-allowed}
 .g3cdp b{color:var(--red);font-size:1.2em}.g3cdp.done{display:none}
+
+/* Master Service: updated content */
+.msx:not(.sm) .ms-p2{font-size:23px;color:#333;animation-delay:.9s}
+.ms-tagline{margin:4px 0 0;align-self:flex-start;background:linear-gradient(100deg,#b30d12,var(--red));color:#fff;font-size:28px;font-weight:800;font-style:italic;padding:6px 34px;clip-path:polygon(2% 0,100% 0,98% 100%,0 100%);animation:kyIn .5s 1.8s both}
+.msx:not(.sm):not(.dk) .ms-l{gap:10px}
+.msx:not(.sm) .ms-mind span{width:66px;height:66px;font-size:36px}.msx:not(.sm) .ms-mind small{font-size:18px}
+.msx:not(.sm) .ms-req{gap:16px;margin-top:14px}.msx:not(.sm) .ms-req span{height:92px}.msx:not(.sm) .ms-req p{font-size:33px}
+.brk h1{font-size:180px}
+.msx.sm .ms-tagline{font-size:13px;padding:4px 14px}.brk.sm h1{font-size:64px}
