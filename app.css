@@ -1201,3 +1201,10 @@ div.gvo{grid-template-columns:44px 1fr}
 .msx:not(.sm) .ms-req{gap:16px;margin-top:14px}.msx:not(.sm) .ms-req span{height:92px}.msx:not(.sm) .ms-req p{font-size:33px}
 .brk h1{font-size:180px}
 .msx.sm .ms-tagline{font-size:13px;padding:4px 14px}.brk.sm h1{font-size:64px}
+
+.ms-tlrow{display:flex;align-items:center;gap:22px;margin-top:4px}.ms-tlrow .ms-tagline{margin:0;font-size:24px}
+.ms-gfoot{display:flex}.ms-gfoot span{display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 16px;border-left:2px solid #ddd;font-size:15px;animation:gxUp .5s both;animation-delay:calc(2s + var(--i)*.12s)}.ms-gfoot span:first-child{border:0}.ms-gfoot .ic{font-size:34px;color:#1d1d1d}
+.msx.sm .ms-tlrow{flex-direction:column;align-items:flex-start;gap:6px}.msx.sm .ms-gfoot span{font-size:9px;padding:0 8px}.msx.sm .ms-gfoot .ic{font-size:20px}
+.msx:not(.sm) .ms-tlrow{gap:14px}.msx:not(.sm) .ms-tlrow .ms-tagline{white-space:nowrap;font-size:21px;padding:6px 26px}
+.msx:not(.sm) .ms-gfoot span{padding:0 10px;font-size:12px;white-space:nowrap}.msx:not(.sm) .ms-gfoot .ic{font-size:26px}
+.msx:not(.sm) .ms-mind small{font-size:17px;line-height:1.25}.msx:not(.sm) .ms-p2{font-size:22px}
