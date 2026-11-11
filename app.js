@@ -206,9 +206,11 @@ function render(){ if(V.admin) return location.hash==='#backoffice'?renderBO():r
 addEventListener('hashchange',()=>location.reload());
 
 /* ---------- player ---------- */
+// late join: opening the site with #g1 lets someone who missed game 1 take it now, without moving anyone else
+const lateG1=()=>location.hash==='#g1'&&V&&V.me&&!V.me.g1&&!['idle','lobby','p0','gvote','gvres','p1','g1'].includes(V.phase);
 function keyPlayer(){
   const m=V.me,g=m.g3||{},x=V.g3||{};
-  return [V.phase,V.round,V.board,V.recapTab,V.recapOpen||0,(m.gvPicks||[]).join(','),m.g1||'',m.submitted?1:0,x.signs||0,(x.signPoints||[]).join(','),g.choice||'',m.group?m.group.no:''].join('|');
+  return [lateG1()?'g1':V.phase,V.round,V.board,V.recapTab,V.recapOpen||0,(m.gvPicks||[]).join(','),m.g1||'',m.submitted?1:0,x.signs||0,(x.signPoints||[]).join(','),g.choice||'',m.group?m.group.no:''].join('|');
 }
 function renderPlayer(){
   if(V.phase==='idle'||V.phase==='lobby'){store.del('q:'+V.me.id);store.del(LGKEY());LG.round=-1;seenSigns=-1;learnSeen=-1;gelSeen=-1}
@@ -225,7 +227,7 @@ function renderPlayer(){
   if(key===lastKey)return;
   const prevKey=lastKey;lastKey=key;
   const main=$('#main');
-  const fn=PV[V.phase]||PV.idle; fn(main,prevKey);
+  const fn=lateG1()?PV.g1:(PV[V.phase]||PV.idle); fn(main,prevKey);
   window.scrollTo(0,0);
 }
 function patchPlayer(){
